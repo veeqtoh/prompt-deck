@@ -23,7 +23,7 @@ class ListPromptsCommand extends Command
 
     public function handle(): int
     {
-        $basePath = config('promptforge.path');
+        $basePath = config('prompt-forge.path');
         if (! is_dir($basePath)) {
             $this->warn('Prompts directory not found.');
 
@@ -57,7 +57,7 @@ class ListPromptsCommand extends Command
                     $name,
                     'v'.$activeVersion,
                     '✅',
-                    $this->getDescription($name, $activeVersion),
+                    $this->getPromptDescription($name, $activeVersion),
                 ];
             }
         }
@@ -67,6 +67,9 @@ class ListPromptsCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * Get the active version number for a prompt, or 0 if not found.
+     */
     protected function getActiveVersion(string $name): int
     {
         try {
@@ -76,7 +79,10 @@ class ListPromptsCommand extends Command
         }
     }
 
-    protected function getDescription(string $name, int $version): string
+    /**
+     * Get the description for a specific prompt version, or an empty string if not found.
+     */
+    protected function getPromptDescription(string $name, int $version): string
     {
         try {
             $prompt = $this->manager->prompt($name, $version);
