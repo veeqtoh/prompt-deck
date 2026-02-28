@@ -1,0 +1,71 @@
+{
+    "name": "veeqtoh/prompt-forge",
+    "description": "A Laravel package that adds versioned, file-based prompt management with variable interpolation, performance tracking, A/B testing, and optional seamless integration with the Laravel AI SDK.",
+    "type": "library",
+    "homepage": "https://github.com/veeqtoh/prompt-forge",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Victor Ukam",
+            "email": "victorjohnukam@gmail.com"
+        }
+    ],
+    "keywords": [
+        "veeqtoh",
+        "victor-ukam",
+        "prompt-management",
+        "versioned-prompts",
+        "file-based-prompts",
+        "variable-interpolation",
+        "performance-tracking",
+        "ab-testing",
+        "laravel",
+        "laravel-package"
+    ],
+    "require": {
+        "php": "^8.1",
+        "nesbot/carbon": "^2.0|^3.0",
+        "illuminate/container": "^10.0|^11.0|^12.0",
+        "illuminate/database": "^10.0|^11.0|^12.0",
+        "illuminate/support": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "mockery/mockery": "^1.0",
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "larastan/larastan": "^2.0",
+        "pestphp/pest-plugin-laravel": "^2.3|^3.0"
+    },
+    "suggest": {
+        "laravel/ai": "Enables deep integration with Laravel AI SDK agents (automatic instructions loading, prompt version tracking in conversations)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Veeqtoh\\PromptForge\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Veeqtoh\\PromptForge\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Veeqtoh\\PromptForge\\Providers\\PromptForgeProvider"
+            ],
+            "aliases": {
+                "PromptForge": "Veeqtoh\\PromptForge\\Facades\\PromptForge"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

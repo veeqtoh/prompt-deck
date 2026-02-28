@@ -1,1 +1,1 @@
-# promt-forge
+# prompt-forge
