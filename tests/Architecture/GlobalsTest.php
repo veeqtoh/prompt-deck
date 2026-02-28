@@ -1,15 +1,15 @@
 <?php
 
-test('globals')
+test('globals are not used in any classes')
     ->expect(['dd', 'ddd', 'die', 'dump', 'ray', 'sleep'])
     ->toBeUsedInNothing();
 
 test('all classes use strict types')
-    ->expect('App')
+    ->expect('Veeqtoh\PromptForge')
     ->toUseStrictTypes();
 
 test('strict equality is enforced in all classes')
-    ->expect('App')
+    ->expect('Veeqtoh\PromptForge')
     ->toUseStrictEquality();
 
 arch('PHP best practices are adhered to')->preset()->php();
