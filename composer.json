@@ -61,7 +61,10 @@
         }
     },
     "scripts": {
-        "test": "vendor/bin/pest"
+        "test": [
+            "vendor/bin/pint --test",
+            "vendor/bin/pest"
+        ]
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
