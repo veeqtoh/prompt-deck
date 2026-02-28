@@ -6,6 +6,8 @@ namespace Veeqtoh\PromptForge\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
+use SebastianBergmann\Diff\Differ;
+use SebastianBergmann\Diff\Output\UnifiedDiffOutputBuilder;
 use Veeqtoh\PromptForge\Exceptions\PromptNotFoundException;
 
 class PromptDiffCommand extends Command
@@ -38,13 +40,13 @@ class PromptDiffCommand extends Command
             return Command::FAILURE;
         }
 
-        $basePath = config('promptforge.path').'/'.$name;
+        $basePath = config('prompt-forge.path').'/'.$name;
 
         if (! $this->files->isDirectory($basePath)) {
             throw PromptNotFoundException::named($name);
         }
 
-        $ext = config('promptforge.extension', 'md');
+        $ext = config('prompt-forge.extension', 'md');
 
         $filesToCompare = [];
         if ($type === 'system' || $type === 'all') {
@@ -67,20 +69,17 @@ class PromptDiffCommand extends Command
             $content1 = $this->files->exists($path1) ? $this->files->get($path1) : '';
             $content2 = $this->files->exists($path2) ? $this->files->get($path2) : '';
 
-            $this->diff($content1, $content2);
+            $this->showDiff($content1, $content2);
         }
 
         return Command::SUCCESS;
     }
 
-    protected function diff(string $old, string $new): void
+    protected function showDiff(string $old, string $new): void
     {
-        // Simple line-by-line diff (you could use a package like sebastian/diff)
-        $oldLines = explode("\n", $old);
-        $newLines = explode("\n", $new);
+        $differ = new Differ(new UnifiedDiffOutputBuilder);
+        $output = $differ->diff($old, $new);
 
-        $diff     = new \Diff($oldLines, $newLines);
-        $renderer = new \Diff_Renderer_Text_Unified;
-        echo $diff->render($renderer);
+        $this->line($output);
     }
 }
