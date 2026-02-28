@@ -44,8 +44,8 @@ return [
     */
     'cache' => [
         'enabled' => env('PROMPTFORGE_CACHE_ENABLED', true),
-        'store' => env('PROMPTFORGE_CACHE_STORE', 'file'), // null to use default cache
-        'ttl' => 3600, // seconds
+        'store'   => env('PROMPTFORGE_CACHE_STORE', 'file'), // null to use default cache
+        'ttl'     => 3600, // seconds
     ],
 
     /*
@@ -58,7 +58,7 @@ return [
     |
     */
     'tracking' => [
-        'enabled' => env('PROMPTFORGE_TRACKING_ENABLED', true),
+        'enabled'    => env('PROMPTFORGE_TRACKING_ENABLED', true),
         'connection' => env('PROMPTFORGE_DB_CONNECTION'), // null for default
     ],
 ];

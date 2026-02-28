@@ -1,0 +1,65 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Veeqtoh\PromptForge\Console\Commands;
+
+use Illuminate\Console\Command;
+use Veeqtoh\PromptForge\PromptManager;
+
+class TestPromptCommand extends Command
+{
+    protected $signature = 'prompt:test {name : The prompt name}
+                              {--version= : Specific version (defaults to active)}
+                              {--input= : The input to test}
+                              {--variables= : JSON string of variables}';
+
+    protected $description = 'Test a prompt with sample input and see the rendered result';
+
+    protected PromptManager $manager;
+
+    public function __construct(PromptManager $manager)
+    {
+        parent::__construct();
+        $this->manager = $manager;
+    }
+
+    public function handle(): int
+    {
+        $name          = $this->argument('name');
+        $version       = $this->option('version') ? (int) $this->option('version') : null;
+        $input         = $this->option('input') ?? 'Sample user input';
+        $variablesJson = $this->option('variables') ?? '{}';
+
+        $variables = json_decode($variablesJson, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->error('Invalid JSON for --variables');
+
+            return Command::FAILURE;
+        }
+
+        try {
+            $prompt = $version
+                ? $this->manager->prompt($name, $version)
+                : $this->manager->active($name);
+
+            $this->info("Testing prompt [{$name}] version {$prompt->version()}\n");
+
+            if ($prompt->metadata()['variables'] ?? false) {
+                $this->comment('Expected variables: '.implode(', ', $prompt->metadata()['variables']));
+            }
+
+            $this->line("\n--- SYSTEM PROMPT ---");
+            $this->line($prompt->renderSystem($variables));
+
+            $this->line("\n--- USER PROMPT ---");
+            $this->line($prompt->renderUser(array_merge($variables, ['input' => $input])));
+
+            return Command::SUCCESS;
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
+
+            return Command::FAILURE;
+        }
+    }
+}
