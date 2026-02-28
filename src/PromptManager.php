@@ -247,6 +247,9 @@ class PromptManager
         return $data;
     }
 
+    /**
+     * Load metadata for a specific prompt version.
+     */
     protected function loadMetadata(string $name, int $version): array
     {
         $metaFile = "{$this->basePath}/{$name}/v{$version}/metadata.json";
