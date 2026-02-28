@@ -10,7 +10,7 @@ use Veeqtoh\PromptForge\PromptManager;
 class TestPromptCommand extends Command
 {
     protected $signature = 'prompt:test {name : The prompt name}
-                              {--version= : Specific version (defaults to active)}
+                              {--ver= : Specific version (defaults to active)}
                               {--input= : The input to test}
                               {--variables= : JSON string of variables}';
 
@@ -27,7 +27,7 @@ class TestPromptCommand extends Command
     public function handle(): int
     {
         $name          = $this->argument('name');
-        $version       = $this->option('version') ? (int) $this->option('version') : null;
+        $version       = $this->option('ver') ? (int) $this->option('ver') : null;
         $input         = $this->option('input') ?? 'Sample user input';
         $variablesJson = $this->option('variables') ?? '{}';
 
