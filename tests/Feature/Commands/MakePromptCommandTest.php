@@ -9,12 +9,16 @@ declare(strict_types=1);
 test('make:prompt prompts for name when argument is omitted', function () {
     $this->artisan('make:prompt')
         ->expectsQuestion('What should the prompt be named?', 'asked-name')
+        ->expectsQuestion('Briefly describe this prompt (press Enter to skip)', '')
         ->expectsConfirmation('Would you also like to create a user prompt file?', 'no')
         ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'no')
         ->expectsOutput('Version 1 of the [asked-name] prompt has been created successfully with the following roles: system.')
         ->assertSuccessful();
 
     expect(file_exists("{$this->tempDir}/asked-name/v1/system.md"))->toBeTrue();
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/asked-name/metadata.json"), true);
+    expect($meta['description'])->toBe('');
 });
 
 test('make:prompt fails when name argument is omitted and user gives empty answer', function () {
@@ -27,6 +31,7 @@ test('make:prompt fails when name argument is omitted and user gives empty answe
 test('make:prompt without name asks about user prompt and accepts', function () {
     $this->artisan('make:prompt')
         ->expectsQuestion('What should the prompt be named?', 'full-interactive')
+        ->expectsQuestion('Briefly describe this prompt (press Enter to skip)', '')
         ->expectsConfirmation('Would you also like to create a user prompt file?', 'yes')
         ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'no')
         ->assertSuccessful();
@@ -41,6 +46,7 @@ test('make:prompt without name asks about user prompt and accepts', function () 
 test('make:prompt without name asks about extra roles and creates them', function () {
     $this->artisan('make:prompt')
         ->expectsQuestion('What should the prompt be named?', 'roles-interactive')
+        ->expectsQuestion('Briefly describe this prompt (press Enter to skip)', '')
         ->expectsConfirmation('Would you also like to create a user prompt file?', 'no')
         ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'yes')
         ->expectsQuestion('Which roles? (comma-separated, e.g. assistant,developer)', 'assistant, tool')
@@ -58,6 +64,7 @@ test('make:prompt without name asks about extra roles and creates them', functio
 test('make:prompt without name full interactive creates everything', function () {
     $this->artisan('make:prompt')
         ->expectsQuestion('What should the prompt be named?', 'everything')
+        ->expectsQuestion('Briefly describe this prompt (press Enter to skip)', '')
         ->expectsConfirmation('Would you also like to create a user prompt file?', 'yes')
         ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'yes')
         ->expectsQuestion('Which roles? (comma-separated, e.g. assistant,developer)', 'assistant')
@@ -69,6 +76,34 @@ test('make:prompt without name full interactive creates everything', function ()
 
     $meta = json_decode(file_get_contents("{$this->tempDir}/everything/metadata.json"), true);
     expect($meta['roles'])->toBe(['system', 'user', 'assistant']);
+});
+
+test('make:prompt without name stores description from interactive prompt', function () {
+    $this->artisan('make:prompt')
+        ->expectsQuestion('What should the prompt be named?', 'described')
+        ->expectsQuestion('Briefly describe this prompt (press Enter to skip)', 'A compassionate wellbeing guide')
+        ->expectsConfirmation('Would you also like to create a user prompt file?', 'no')
+        ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'no')
+        ->assertSuccessful();
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/described/metadata.json"), true);
+    expect($meta['description'])->toBe('A compassionate wellbeing guide');
+});
+
+test('make:prompt --desc stores description from CLI option', function () {
+    $this->artisan('make:prompt', ['name' => 'cli-desc', '--desc' => 'Topic moderation agent'])
+        ->assertSuccessful();
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/cli-desc/metadata.json"), true);
+    expect($meta['description'])->toBe('Topic moderation agent');
+});
+
+test('make:prompt without --desc defaults to empty description', function () {
+    $this->artisan('make:prompt', ['name' => 'no-desc'])
+        ->assertSuccessful();
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/no-desc/metadata.json"), true);
+    expect($meta['description'])->toBe('');
 });
 
 // =====================================================================

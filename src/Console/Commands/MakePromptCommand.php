@@ -11,6 +11,7 @@ class MakePromptCommand extends Command
 {
     protected $signature = 'make:prompt {name? : The name of the prompt}
                             {--from= : Path to a stub file to use as template}
+                            {--desc= : A short description of what this prompt does}
                             {--u|user : Also create a user prompt file}
                             {--role=* : Additional roles to create prompt files for (e.g. assistant, developer, tool)}
                             {--i|interactive : Interactively choose additional roles}
@@ -39,6 +40,10 @@ class MakePromptCommand extends Command
 
         $name     = $this->toKebabCase($rawName);
         $basePath = config('prompt-forge.path');
+
+        // Resolve description.
+        $description = $this->option('desc')
+            ?? ($promptedForName ? ($this->ask('Briefly describe this prompt (press Enter to skip)') ?? '') : '');
 
         if (! is_dir($basePath)) {
             $this->files->makeDirectory($basePath, 0755, true);
@@ -95,7 +100,7 @@ class MakePromptCommand extends Command
 
         $metadata = [
             'name'        => $name,
-            'description' => '',
+            'description' => $description,
             'roles'       => array_values($allRoles),
             'variables'   => [],
             'created_at'  => now()->toIso8601String(),
