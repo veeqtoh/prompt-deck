@@ -45,7 +45,7 @@ class PromptManager
     public function get(string $name, ?int $version = null): Prompt
     {
         $version ??= $this->getActiveVersion($name);
-        $cacheKey = "prompt-forge.{$name}.v{$version}";
+        $cacheKey = $this->config->get('prompt-forge.cache.prefix', 'prompt-forge:')."{$name}.v{$version}";
 
         // Attempt to load from cache.
         if ($this->config->get('prompt-forge.cache.enabled')) {

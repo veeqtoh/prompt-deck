@@ -43,9 +43,10 @@ return [
     |
     */
     'cache' => [
-        'enabled' => env('PROMPTFORGE_CACHE_ENABLED', true),
+        'enabled' => env('PROMPTFORGE_CACHE_ENABLED', env('APP_DEBUG', false) ? false : true),
         'store'   => env('PROMPTFORGE_CACHE_STORE', 'file'), // null to use default cache
-        'ttl'     => 3600, // seconds
+        'ttl'     => env('PROMPTFORGE_CACHE_TTL', 3600), // seconds
+        'prefix'  => env('CACHE_PREFIX', env('PROMPTFORGE_CACHE_PREFIX', 'prompt-forge:')),
     ],
 
     /*
@@ -58,7 +59,7 @@ return [
     |
     */
     'tracking' => [
-        'enabled'    => env('PROMPTFORGE_TRACKING_ENABLED', true),
+        'enabled'    => env('PROMPTFORGE_TRACKING_ENABLED', env('APP_DEBUG', false) ? false : true),
         'connection' => env('PROMPTFORGE_DB_CONNECTION'), // null for default
     ],
 ];
