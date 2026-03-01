@@ -14,7 +14,7 @@ use Illuminate\Contracts\Support\Arrayable;
  * @method string tool(array $variables = [])
  * @method string skill(array $variables = [])
  */
-class Prompt implements Arrayable
+class PromptTemplate implements Arrayable
 {
     /**
      * @param string $name The prompt name.

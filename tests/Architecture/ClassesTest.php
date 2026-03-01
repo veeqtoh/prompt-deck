@@ -9,6 +9,6 @@ test('PromptForge provider class extends base Laravel service provider class')
     ->toExtend(ServiceProvider::class);
 
 test('PromptForge facade class extends base Laravel facade class')
-    ->expect('Veeqtoh\PromptForge\Facades\Prompt')
+    ->expect('Veeqtoh\PromptForge\Facades\PromptForge')
     ->classes()
     ->toExtend(Facade::class);

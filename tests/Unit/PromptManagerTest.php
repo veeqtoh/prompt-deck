@@ -5,8 +5,8 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Veeqtoh\PromptForge\Exceptions\InvalidVersionException;
 use Veeqtoh\PromptForge\Exceptions\PromptNotFoundException;
-use Veeqtoh\PromptForge\Prompt;
 use Veeqtoh\PromptForge\PromptManager;
+use Veeqtoh\PromptForge\PromptTemplate;
 
 // =====================================================================
 // Helper to get a fresh PromptManager bound to the test's temp directory
@@ -38,7 +38,7 @@ test('get() loads system and user content from filesystem', function () {
 
     $prompt = freshManager()->get('greeting', 1);
 
-    expect($prompt)->toBeInstanceOf(Prompt::class)
+    expect($prompt)->toBeInstanceOf(PromptTemplate::class)
         ->and($prompt->name())->toBe('greeting')
         ->and($prompt->version())->toBe(1)
         ->and($prompt->system())->toBe('You are helpful.')

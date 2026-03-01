@@ -39,10 +39,10 @@ class PromptManager
      * Get a prompt instance by name and optional version.
      * If version is not provided, the active version will be used.
      *
-     *   Prompt::get('order-summary')        // active version.
-     *   Prompt::get('order-summary', 2)     // specific version.
+     *   PromptForge::get('order-summary')        // active version.
+     *   PromptForge::get('order-summary', 2)     // specific version.
      */
-    public function get(string $name, ?int $version = null): Prompt
+    public function get(string $name, ?int $version = null): PromptTemplate
     {
         $version ??= $this->getActiveVersion($name);
         $cacheKey = $this->config->get('prompt-forge.cache.prefix', 'prompt-forge:')."{$name}.v{$version}";
@@ -52,7 +52,7 @@ class PromptManager
             $cached = $this->cache->get($cacheKey);
 
             if ($cached) {
-                return new Prompt(
+                return new PromptTemplate(
                     $name,
                     $version,
                     $cached['roles'] ?? [],
@@ -69,7 +69,7 @@ class PromptManager
             $this->cache->put($cacheKey, $promptData, now()->addSeconds($this->config->get('prompt-forge.cache.ttl')));
         }
 
-        return new Prompt(
+        return new PromptTemplate(
             $name,
             $version,
             $promptData['roles'] ?? [],
@@ -80,7 +80,7 @@ class PromptManager
     /**
      * Get the active version of a prompt.
      */
-    public function active(string $name): Prompt
+    public function active(string $name): PromptTemplate
     {
         return $this->get($name, $this->getActiveVersion($name));
     }
