@@ -2,6 +2,79 @@
 
 declare(strict_types=1);
 
+// =====================================================================
+// Interactive name prompt tests
+// =====================================================================
+
+test('make:prompt prompts for name when argument is omitted', function () {
+    $this->artisan('make:prompt')
+        ->expectsQuestion('What should the prompt be named?', 'asked-name')
+        ->expectsConfirmation('Would you also like to create a user prompt file?', 'no')
+        ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'no')
+        ->expectsOutput('Prompt [asked-name] created successfully at version 1.')
+        ->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/asked-name/v1/system.md"))->toBeTrue();
+});
+
+test('make:prompt fails when name argument is omitted and user gives empty answer', function () {
+    $this->artisan('make:prompt')
+        ->expectsQuestion('What should the prompt be named?', '')
+        ->expectsOutput('A prompt name is required.')
+        ->assertFailed();
+});
+
+test('make:prompt without name asks about user prompt and accepts', function () {
+    $this->artisan('make:prompt')
+        ->expectsQuestion('What should the prompt be named?', 'full-interactive')
+        ->expectsConfirmation('Would you also like to create a user prompt file?', 'yes')
+        ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'no')
+        ->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/full-interactive/v1/system.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/full-interactive/v1/user.md"))->toBeTrue();
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/full-interactive/metadata.json"), true);
+    expect($meta['roles'])->toBe(['system', 'user']);
+});
+
+test('make:prompt without name asks about extra roles and creates them', function () {
+    $this->artisan('make:prompt')
+        ->expectsQuestion('What should the prompt be named?', 'roles-interactive')
+        ->expectsConfirmation('Would you also like to create a user prompt file?', 'no')
+        ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'yes')
+        ->expectsQuestion('Which roles? (comma-separated, e.g. assistant,developer)', 'assistant, tool')
+        ->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/roles-interactive/v1/system.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/roles-interactive/v1/assistant.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/roles-interactive/v1/tool.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/roles-interactive/v1/user.md"))->toBeFalse();
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/roles-interactive/metadata.json"), true);
+    expect($meta['roles'])->toBe(['system', 'assistant', 'tool']);
+});
+
+test('make:prompt without name full interactive creates everything', function () {
+    $this->artisan('make:prompt')
+        ->expectsQuestion('What should the prompt be named?', 'everything')
+        ->expectsConfirmation('Would you also like to create a user prompt file?', 'yes')
+        ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'yes')
+        ->expectsQuestion('Which roles? (comma-separated, e.g. assistant,developer)', 'assistant')
+        ->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/everything/v1/system.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/everything/v1/user.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/everything/v1/assistant.md"))->toBeTrue();
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/everything/metadata.json"), true);
+    expect($meta['roles'])->toBe(['system', 'user', 'assistant']);
+});
+
+// =====================================================================
+// Default behaviour tests
+// =====================================================================
+
 test('make:prompt creates only a system prompt file by default', function () {
     $this->artisan('make:prompt', ['name' => 'my-prompt'])
         ->expectsOutput('Prompt [my-prompt] created successfully at version 1.')
@@ -369,10 +442,8 @@ test('make:prompt prefers published role stub over package default', function ()
 
 test('make:prompt -i prompts for additional roles interactively', function () {
     $this->artisan('make:prompt', ['name' => 'interactive-test', '--interactive' => true])
-        ->expectsQuestion(
-            'Any additional roles to create prompt files for? (comma-separated, e.g. assistant,developer — press Enter to skip)',
-            'assistant, tool'
-        )
+        ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'yes')
+        ->expectsQuestion('Which roles? (comma-separated, e.g. assistant,developer)', 'assistant, tool')
         ->assertSuccessful();
 
     expect(file_exists("{$this->tempDir}/interactive-test/v1/assistant.md"))->toBeTrue()
@@ -381,12 +452,9 @@ test('make:prompt -i prompts for additional roles interactively', function () {
         ->and(file_exists("{$this->tempDir}/interactive-test/v1/user.md"))->toBeFalse();
 });
 
-test('make:prompt -i with empty answer creates no extra roles', function () {
+test('make:prompt -i declining roles creates no extra roles', function () {
     $this->artisan('make:prompt', ['name' => 'interactive-skip', '-i' => true])
-        ->expectsQuestion(
-            'Any additional roles to create prompt files for? (comma-separated, e.g. assistant,developer — press Enter to skip)',
-            ''
-        )
+        ->expectsConfirmation('Would you like to create prompt files for additional roles?', 'no')
         ->assertSuccessful();
 
     $files     = glob("{$this->tempDir}/interactive-skip/v1/*.md");

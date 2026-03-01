@@ -9,7 +9,7 @@ use Illuminate\Filesystem\Filesystem;
 
 class MakePromptCommand extends Command
 {
-    protected $signature = 'make:prompt {name : The name of the prompt}
+    protected $signature = 'make:prompt {name? : The name of the prompt}
                             {--from= : Path to a stub file to use as template}
                             {--u|user : Also create a user prompt file}
                             {--role=* : Additional roles to create prompt files for (e.g. assistant, developer, tool)}
@@ -28,7 +28,16 @@ class MakePromptCommand extends Command
 
     public function handle(): int
     {
-        $name     = $this->toKebabCase($this->argument('name'));
+        $promptedForName = ! $this->argument('name');
+        $rawName         = $this->argument('name') ?? $this->ask('What should the prompt be named?');
+
+        if (! $rawName) {
+            $this->error('A prompt name is required.');
+
+            return Command::FAILURE;
+        }
+
+        $name     = $this->toKebabCase($rawName);
         $basePath = config('prompt-forge.path');
 
         if (! is_dir($basePath)) {
@@ -56,15 +65,18 @@ class MakePromptCommand extends Command
         $systemFile = "{$versionPath}/system.{$extension}";
         $this->files->put($systemFile, $this->getSystemStubContent());
 
-        // Create user prompt file only when --user is passed.
-        if ($this->option('user')) {
+        // Create user prompt file when --user is passed or interactively confirmed.
+        $createUser = $this->option('user')
+            || ($promptedForName && $this->confirm('Would you also like to create a user prompt file?'));
+
+        if ($createUser) {
             $userFile    = "{$versionPath}/user.{$extension}";
             $stubContent = $this->getStubContent($this->option('from'));
             $this->files->put($userFile, $stubContent);
         }
 
-        // Handle additional roles.
-        $roles = $this->resolveExtraRoles();
+        // Handle additional roles (auto-interactive when name was prompted).
+        $roles = $this->resolveExtraRoles($promptedForName);
 
         foreach ($roles as $role) {
             $roleName = $this->toKebabCase($role);
@@ -75,7 +87,7 @@ class MakePromptCommand extends Command
         // Create metadata.json
         $allRoles = ['system'];
 
-        if ($this->option('user')) {
+        if ($createUser) {
             $allRoles[] = 'user';
         }
 
@@ -130,7 +142,7 @@ class MakePromptCommand extends Command
      *
      * @return list<string>
      */
-    protected function resolveExtraRoles(): array
+    protected function resolveExtraRoles(bool $autoInteractive = false): array
     {
         /** @var list<string> $roles */
         $roles = $this->option('role');
@@ -139,11 +151,15 @@ class MakePromptCommand extends Command
             return array_values(array_filter(array_map('trim', $roles)));
         }
 
-        if (! $this->option('interactive')) {
+        if (! $autoInteractive && ! $this->option('interactive')) {
             return [];
         }
 
-        $input = $this->ask('Any additional roles to create prompt files for? (comma-separated, e.g. assistant,developer — press Enter to skip)');
+        if (! $this->confirm('Would you like to create prompt files for additional roles?')) {
+            return [];
+        }
+
+        $input = $this->ask('Which roles? (comma-separated, e.g. assistant,developer)');
 
         if (! $input) {
             return [];
