@@ -51,12 +51,13 @@ test('publishable config is registered', function () {
     expect($publishes)->not->toBeEmpty();
 });
 
-test('publishable stubs are registered', function () {
-    $publishes = \Illuminate\Support\ServiceProvider::pathsToPublish(
-        \Veeqtoh\PromptForge\Providers\PromptForgeProvider::class,
-        'prompt-forge-stubs'
+test('stubs are not included in default provider publishing', function () {
+    // When publishing via --provider, stubs should not be included.
+    $allPublishes = \Illuminate\Support\ServiceProvider::pathsToPublish(
+        \Veeqtoh\PromptForge\Providers\PromptForgeProvider::class
     );
 
-    expect($publishes)->not->toBeEmpty()
-        ->and(array_values($publishes))->each->toContain('stubs/prompt-forge/');
+    $stubPaths = array_filter($allPublishes, fn ($path) => str_contains($path, '.stub'));
+
+    expect($stubPaths)->toBeEmpty();
 });

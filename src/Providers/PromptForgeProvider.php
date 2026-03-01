@@ -64,19 +64,13 @@ class PromptForgeProvider extends ServiceProvider
         // Publish migrations.
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../../database/migrations/' => database_path('migrations'),
+                __DIR__.'/../database/migrations/' => database_path('migrations'),
             ], 'prompt-forge-migrations');
 
             // Publish config.
             $this->publishes([
                 __DIR__.'/../../config/prompt-forge.php' => config_path('prompt-forge.php'),
             ], 'prompt-forge-config');
-
-            // Publish stubs.
-            $this->publishes([
-                __DIR__.'/../../stubs/user-prompt.stub'   => $this->app->basePath('stubs/prompt-forge/user-prompt.stub'),
-                __DIR__.'/../../stubs/system-prompt.stub' => $this->app->basePath('stubs/prompt-forge/system-prompt.stub'),
-            ], 'prompt-forge-stubs');
         }
     }
 
