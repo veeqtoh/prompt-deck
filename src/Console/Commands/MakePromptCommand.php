@@ -44,12 +44,12 @@ class MakePromptCommand extends Command
             $this->files->makeDirectory($basePath, 0755, true);
         }
 
-        $promptPath  = "{$basePath}/{$name}";
-        $versionPath = "{$promptPath}/v1";
+        $promptPath = "{$basePath}/{$name}";
 
-        if ($this->files->exists($versionPath) && ! $this->option('force')) {
-            $this->error("Prompt [{$name}] already exists. Use --force to overwrite.");
+        // Resolve which version to create.
+        [$version, $versionPath] = $this->resolveVersion($promptPath, $name);
 
+        if ($version === 0) {
             return Command::FAILURE;
         }
 
@@ -102,9 +102,78 @@ class MakePromptCommand extends Command
         ];
         $this->files->put("{$promptPath}/metadata.json", json_encode($metadata, JSON_PRETTY_PRINT));
 
-        $this->info("Prompt [{$name}] created successfully at version 1.");
+        $roleList = implode(', ', $allRoles);
+        $this->info("Version {$version} of the [{$name}] prompt has been created successfully with the following roles: {$roleList}.");
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Determine which version directory to create.
+     *
+     * - Brand-new prompt → v1.
+     * - Existing prompt + --force → overwrite the latest version.
+     * - Existing prompt (interactive) → ask whether to create a new
+     *   version or overwrite the latest.
+     *
+     * Returns [0, ''] when the user cancels.
+     *
+     * @return array{int, string}
+     */
+    protected function resolveVersion(string $promptPath, string $name): array
+    {
+        $latestVersion = $this->detectLatestVersion($promptPath);
+
+        // Brand-new prompt — start at v1.
+        if ($latestVersion === 0) {
+            return [1, "{$promptPath}/v1"];
+        }
+
+        // Non-interactive with --force → overwrite the latest version.
+        if ($this->option('force')) {
+            return [$latestVersion, "{$promptPath}/v{$latestVersion}"];
+        }
+
+        // Prompt already exists — guide the user.
+        $this->warn("Prompt [{$name}] already exists at version {$latestVersion}.");
+
+        $choice = $this->choice(
+            'What would you like to do?',
+            [
+                'version'   => 'Create a new version (v'.($latestVersion + 1).')',
+                'overwrite' => "Overwrite version {$latestVersion}",
+                'cancel'    => 'Cancel',
+            ],
+            'version',
+        );
+
+        return match ($choice) {
+            'version'   => [$latestVersion + 1, "{$promptPath}/v".($latestVersion + 1)],
+            'overwrite' => [$latestVersion, "{$promptPath}/v{$latestVersion}"],
+            default     => [0, ''],
+        };
+    }
+
+    /**
+     * Detect the highest existing version number for a prompt.
+     *
+     * Returns 0 if the prompt directory does not exist or has no versions.
+     */
+    protected function detectLatestVersion(string $promptPath): int
+    {
+        if (! $this->files->isDirectory($promptPath)) {
+            return 0;
+        }
+
+        $latest = 0;
+
+        foreach ($this->files->directories($promptPath) as $dir) {
+            if (preg_match('/v(\d+)$/', $dir, $matches)) {
+                $latest = max($latest, (int) $matches[1]);
+            }
+        }
+
+        return $latest;
     }
 
     protected function getStubContent(?string $customStub): string
