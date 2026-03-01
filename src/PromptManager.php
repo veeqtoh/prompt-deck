@@ -36,9 +36,13 @@ class PromptManager
     }
 
     /**
-     * Get a prompt instance for the given name and optional version.
+     * Get a prompt instance by name and optional version.
+     * If version is not provided, the active version will be used.
+     *
+     *   Prompt::get('order-summary')        // active version.
+     *   Prompt::get('order-summary', 2)     // specific version.
      */
-    public function prompt(string $name, ?int $version = null): Prompt
+    public function get(string $name, ?int $version = null): Prompt
     {
         $version ??= $this->getActiveVersion($name);
         $cacheKey = "prompt-forge.{$name}.v{$version}";
@@ -51,8 +55,7 @@ class PromptManager
                 return new Prompt(
                     $name,
                     $version,
-                    $cached['system'] ?? '',
-                    $cached['user'] ?? '',
+                    $cached['roles'] ?? [],
                     $cached['metadata'] ?? []
                 );
             }
@@ -69,8 +72,7 @@ class PromptManager
         return new Prompt(
             $name,
             $version,
-            $promptData['system'] ?? '',
-            $promptData['user'] ?? '',
+            $promptData['roles'] ?? [],
             $promptData['metadata'] ?? []
         );
     }
@@ -80,7 +82,7 @@ class PromptManager
      */
     public function active(string $name): Prompt
     {
-        return $this->prompt($name, $this->getActiveVersion($name));
+        return $this->get($name, $this->getActiveVersion($name));
     }
 
     /**
@@ -216,6 +218,10 @@ class PromptManager
 
     /**
      * Load prompt data from filesystem for a given name and version.
+     *
+     * Dynamically discovers all role files (*.{extension}) in the
+     * version directory, so any role scaffolded by make:prompt is
+     * automatically available at runtime.
      */
     protected function loadFromFiles(string $name, int $version): array
     {
@@ -225,26 +231,27 @@ class PromptManager
             throw InvalidVersionException::forPrompt($name, $version);
         }
 
-        $data = [];
+        $roles = [];
 
-        // Load system.md if exists.
-        if ($this->files->exists($systemFile = "{$versionPath}/system.{$this->extension}")) {
-            $data['system'] = $this->files->get($systemFile);
+        // Scan every file matching the configured extension.
+        foreach ($this->files->files($versionPath) as $file) {
+            if ($file->getExtension() === $this->extension) {
+                $roleName         = $file->getBasename('.'.$this->extension);
+                $roles[$roleName] = $this->files->get($file->getPathname());
+            }
         }
 
-        // Load user.md if exists (or prompt.md).
-        if ($this->files->exists($userFile = "{$versionPath}/user.{$this->extension}")) {
-            $data['user'] = $this->files->get($userFile);
-        } elseif ($this->files->exists($promptFile = "{$versionPath}/prompt.{$this->extension}")) {
-            $data['user'] = $this->files->get($promptFile);
-        }
+        // Load metadata.json if present.
+        $metadata = [];
 
-        // Load metadata.json if exists.
         if ($this->files->exists($metaFile = "{$versionPath}/metadata.json")) {
-            $data['metadata'] = json_decode($this->files->get($metaFile), true);
+            $metadata = json_decode($this->files->get($metaFile), true) ?? [];
         }
 
-        return $data;
+        return [
+            'roles'    => $roles,
+            'metadata' => $metadata,
+        ];
     }
 
     /**

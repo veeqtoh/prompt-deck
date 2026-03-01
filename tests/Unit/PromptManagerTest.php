@@ -33,85 +33,91 @@ function freshManager(?array $configOverrides = []): PromptManager
 // prompt() — filesystem loading
 // =====================================================================
 
-test('prompt() loads system and user content from filesystem', function () {
+test('get() loads system and user content from filesystem', function () {
     $this->createPromptFixture('greeting', 1, 'You are helpful.', 'Hello {{ $name }}');
 
-    $prompt = freshManager()->prompt('greeting', 1);
+    $prompt = freshManager()->get('greeting', 1);
 
     expect($prompt)->toBeInstanceOf(Prompt::class)
         ->and($prompt->name())->toBe('greeting')
         ->and($prompt->version())->toBe(1)
-        ->and($prompt->renderSystem())->toBe('You are helpful.')
-        ->and($prompt->renderUser(['name' => 'World']))->toBe('Hello World');
+        ->and($prompt->system())->toBe('You are helpful.')
+        ->and($prompt->user(['name' => 'World']))->toBe('Hello World');
 });
 
-test('prompt() falls back to prompt.md when user.md is missing', function () {
-    $versionPath = $this->createPromptFixture('fallback', 1, 'system text');
-    // Create prompt.md instead of user.md
-    file_put_contents("{$versionPath}/prompt.md", 'Fallback user content');
+test('get() dynamically loads any role file from the version directory', function () {
+    $versionPath = $this->createPromptFixture('dynamic', 1, 'system text');
+    file_put_contents("{$versionPath}/assistant.md", 'assistant content');
+    file_put_contents("{$versionPath}/developer.md", 'developer content');
 
-    $prompt = freshManager()->prompt('fallback', 1);
+    $prompt = freshManager()->get('dynamic', 1);
 
-    expect($prompt->renderUser())->toBe('Fallback user content');
+    expect($prompt->has('system'))->toBeTrue()
+        ->and($prompt->has('assistant'))->toBeTrue()
+        ->and($prompt->has('developer'))->toBeTrue()
+        ->and($prompt->assistant())->toBe('assistant content')
+        ->and($prompt->developer())->toBe('developer content');
 });
 
-test('prompt() returns empty system when system file is absent', function () {
+test('get() returns false for has() when role file is absent', function () {
     $this->createPromptFixture('no-system', 1, null, 'user text only');
 
-    $prompt = freshManager()->prompt('no-system', 1);
+    $prompt = freshManager()->get('no-system', 1);
 
-    expect($prompt->renderSystem())->toBe('');
+    expect($prompt->has('system'))->toBeFalse()
+        ->and($prompt->has('user'))->toBeTrue();
 });
 
-test('prompt() returns empty user when no user or prompt file exists', function () {
+test('get() has no user role when user file is absent', function () {
     $this->createPromptFixture('no-user', 1, 'system text', null);
 
-    $prompt = freshManager()->prompt('no-user', 1);
+    $prompt = freshManager()->get('no-user', 1);
 
-    expect($prompt->renderUser())->toBe('');
+    expect($prompt->has('user'))->toBeFalse()
+        ->and($prompt->user())->toBe('');
 });
 
-test('prompt() loads per-version metadata.json', function () {
+test('get() loads per-version metadata.json', function () {
     $meta = ['description' => 'Version 1 prompt', 'author' => 'tester'];
     $this->createPromptFixture('with-meta', 1, 'sys', 'usr', $meta);
 
-    $prompt = freshManager()->prompt('with-meta', 1);
+    $prompt = freshManager()->get('with-meta', 1);
 
     expect($prompt->metadata())->toBe($meta);
 });
 
-test('prompt() returns empty metadata when metadata.json is absent', function () {
+test('get() returns empty metadata when metadata.json is absent', function () {
     $this->createPromptFixture('no-meta', 1, 'sys', 'usr');
 
-    $prompt = freshManager()->prompt('no-meta', 1);
+    $prompt = freshManager()->get('no-meta', 1);
 
     expect($prompt->metadata())->toBe([]);
 });
 
-test('prompt() throws InvalidVersionException for non-existent version directory', function () {
+test('get() throws InvalidVersionException for non-existent version directory', function () {
     $this->createPromptFixture('exists', 1, 'sys', 'usr');
 
-    freshManager()->prompt('exists', 99);
+    freshManager()->get('exists', 99);
 })->throws(InvalidVersionException::class, 'Version 99 for prompt [exists] does not exist.');
 
-test('prompt() uses custom extension from config', function () {
+test('get() uses custom extension from config', function () {
     $versionPath = "{$this->tempDir}/custom-ext/v1";
     mkdir($versionPath, 0755, true);
     file_put_contents("{$versionPath}/system.txt", 'txt system');
     file_put_contents("{$versionPath}/user.txt", 'txt user');
 
     $this->app['config']->set('prompt-forge.extension', 'txt');
-    $prompt = freshManager()->prompt('custom-ext', 1);
+    $prompt = freshManager()->get('custom-ext', 1);
 
-    expect($prompt->renderSystem())->toBe('txt system')
-        ->and($prompt->renderUser())->toBe('txt user');
+    expect($prompt->system())->toBe('txt system')
+        ->and($prompt->user())->toBe('txt user');
 });
 
 // =====================================================================
 // prompt() — caching
 // =====================================================================
 
-test('prompt() returns from cache when cache is enabled and warm', function () {
+test('get() returns from cache when cache is enabled and warm', function () {
     $this->createPromptFixture('cached', 1, 'original system', 'original user');
 
     $this->app['config']->set('prompt-forge.cache.enabled', true);
@@ -120,33 +126,33 @@ test('prompt() returns from cache when cache is enabled and warm', function () {
     $manager = freshManager();
 
     // First call populates cache.
-    $prompt1 = $manager->prompt('cached', 1);
-    expect($prompt1->renderSystem())->toBe('original system');
+    $prompt1 = $manager->get('cached', 1);
+    expect($prompt1->system())->toBe('original system');
 
     // Overwrite file on disk.
     file_put_contents("{$this->tempDir}/cached/v1/system.md", 'modified system');
 
     // Second call should still return cached version.
-    $prompt2 = $manager->prompt('cached', 1);
-    expect($prompt2->renderSystem())->toBe('original system');
+    $prompt2 = $manager->get('cached', 1);
+    expect($prompt2->system())->toBe('original system');
 });
 
-test('prompt() skips cache when cache.enabled is false', function () {
+test('get() skips cache when cache.enabled is false', function () {
     $this->createPromptFixture('uncached', 1, 'first', 'user');
 
     $this->app['config']->set('prompt-forge.cache.enabled', false);
 
     $manager = freshManager();
 
-    $prompt1 = $manager->prompt('uncached', 1);
-    expect($prompt1->renderSystem())->toBe('first');
+    $prompt1 = $manager->get('uncached', 1);
+    expect($prompt1->system())->toBe('first');
 
     // Overwrite file on disk.
     file_put_contents("{$this->tempDir}/uncached/v1/system.md", 'second');
 
     // Should read from filesystem again.
-    $prompt2 = $manager->prompt('uncached', 1);
-    expect($prompt2->renderSystem())->toBe('second');
+    $prompt2 = $manager->get('uncached', 1);
+    expect($prompt2->system())->toBe('second');
 });
 
 // =====================================================================
@@ -161,7 +167,7 @@ test('active() returns prompt with the active version from metadata.json', funct
     $prompt = freshManager()->active('multi');
 
     expect($prompt->version())->toBe(2)
-        ->and($prompt->renderSystem())->toBe('sys v2');
+        ->and($prompt->system())->toBe('sys v2');
 });
 
 test('active() falls back to highest version when no active_version is set', function () {
@@ -180,10 +186,10 @@ test('active() throws InvalidVersionException when prompt has no version directo
     freshManager()->active('empty-prompt');
 })->throws(InvalidVersionException::class, 'No versions found for prompt [empty-prompt].');
 
-test('prompt() without version argument uses active version', function () {
+test('get() without version argument uses active version', function () {
     $this->createPromptFixture('auto', 1, 'sys v1', 'usr v1', null, ['active_version' => 1]);
 
-    $prompt = freshManager()->prompt('auto');
+    $prompt = freshManager()->get('auto');
 
     expect($prompt->version())->toBe(1);
 });
@@ -456,9 +462,9 @@ test('constructor trims trailing slashes from basePath', function () {
         app('config'),
     );
 
-    $prompt = $manager->prompt('trimmed', 1);
+    $prompt = $manager->get('trimmed', 1);
 
-    expect($prompt->renderSystem())->toBe('sys');
+    expect($prompt->system())->toBe('sys');
 });
 
 test('constructor strips leading dot from extension', function () {
@@ -474,7 +480,7 @@ test('constructor strips leading dot from extension', function () {
         app('config'),
     );
 
-    $prompt = $manager->prompt('dot-ext', 1);
+    $prompt = $manager->get('dot-ext', 1);
 
-    expect($prompt->renderSystem())->toBe('dotted');
+    expect($prompt->system())->toBe('dotted');
 });

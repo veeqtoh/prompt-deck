@@ -4,165 +4,309 @@ declare(strict_types=1);
 
 use Veeqtoh\PromptForge\Prompt;
 
-// --- Accessor methods ---
+// =====================================================================
+// Accessor methods
+// =====================================================================
 
 test('name() returns the constructor name', function () {
-    $prompt = new Prompt('greeting', 1, 'system text', 'user text');
+    $prompt = new Prompt('greeting', 1, ['system' => 'text']);
 
     expect($prompt->name())->toBe('greeting');
 });
 
 test('version() returns the constructor version', function () {
-    $prompt = new Prompt('greeting', 3, 'system text', 'user text');
+    $prompt = new Prompt('greeting', 3, ['system' => 'text']);
 
     expect($prompt->version())->toBe(3);
 });
 
 test('metadata() returns the constructor metadata', function () {
     $meta   = ['description' => 'A test prompt', 'author' => 'tester'];
-    $prompt = new Prompt('greeting', 1, 'sys', 'usr', $meta);
+    $prompt = new Prompt('greeting', 1, ['system' => 'sys'], $meta);
 
     expect($prompt->metadata())->toBe($meta);
 });
 
 test('metadata() defaults to empty array when not provided', function () {
-    $prompt = new Prompt('greeting', 1, 'sys', 'usr');
+    $prompt = new Prompt('greeting', 1, ['system' => 'sys']);
 
     expect($prompt->metadata())->toBe([]);
 });
 
-// --- toArray ---
+// =====================================================================
+// toArray
+// =====================================================================
 
-test('toArray() returns all 5 keys with correct values', function () {
+test('toArray() returns name, version, roles, and metadata', function () {
     $meta   = ['description' => 'test'];
-    $prompt = new Prompt('chat', 2, 'system content', 'user content', $meta);
+    $roles  = ['system' => 'system content', 'user' => 'user content'];
+    $prompt = new Prompt('chat', 2, $roles, $meta);
 
     expect($prompt->toArray())->toBe([
         'name'     => 'chat',
         'version'  => 2,
-        'system'   => 'system content',
-        'user'     => 'user content',
+        'roles'    => $roles,
         'metadata' => $meta,
     ]);
 });
 
 test('toArray() round-trips correctly via constructor', function () {
-    $prompt = new Prompt('roundtrip', 5, 'sys prompt', 'usr prompt', ['key' => 'val']);
+    $roles  = ['system' => 'sys prompt', 'user' => 'usr prompt'];
+    $prompt = new Prompt('roundtrip', 5, $roles, ['key' => 'val']);
     $array  = $prompt->toArray();
 
     $reconstructed = new Prompt(
         $array['name'],
         $array['version'],
-        $array['system'],
-        $array['user'],
+        $array['roles'],
         $array['metadata'],
     );
 
     expect($reconstructed->toArray())->toBe($prompt->toArray());
 });
 
-// --- renderSystem ---
+// =====================================================================
+// role() — explicit rendering
+// =====================================================================
 
-test('renderSystem() with no variables returns raw content', function () {
-    $prompt = new Prompt('test', 1, 'Hello {{ $name }}', 'user text');
+test('role() with no variables returns raw content', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'Hello {{ $name }}']);
 
-    expect($prompt->renderSystem())->toBe('Hello {{ $name }}');
+    expect($prompt->role('system'))->toBe('Hello {{ $name }}');
 });
 
-test('renderSystem() replaces {{ $var }} spaced syntax', function () {
-    $prompt = new Prompt('test', 1, 'Hello {{ $name }}, welcome!', 'user');
+test('role() replaces {{ $var }} spaced syntax', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'Hello {{ $name }}, welcome!']);
 
-    expect($prompt->renderSystem(['name' => 'Alice']))->toBe('Hello Alice, welcome!');
+    expect($prompt->role('system', ['name' => 'Alice']))->toBe('Hello Alice, welcome!');
 });
 
-test('renderSystem() replaces {{var}} non-spaced syntax', function () {
-    $prompt = new Prompt('test', 1, 'Hello {{name}}, welcome!', 'user');
+test('role() replaces {{var}} non-spaced syntax', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'Hello {{name}}, welcome!']);
 
-    expect($prompt->renderSystem(['name' => 'Bob']))->toBe('Hello Bob, welcome!');
+    expect($prompt->role('system', ['name' => 'Bob']))->toBe('Hello Bob, welcome!');
 });
 
-// --- renderUser ---
+test('role() returns empty string for non-existent role', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'text']);
 
-test('renderUser() replaces variables correctly', function () {
-    $prompt = new Prompt('test', 1, 'system', 'Input: {{ $input }}');
-
-    expect($prompt->renderUser(['input' => 'test data']))->toBe('Input: test data');
+    expect($prompt->role('assistant'))->toBe('');
 });
 
-// --- Interpolation edge cases ---
+// =====================================================================
+// __call — magic role access
+// =====================================================================
+
+test('system() renders the system role via __call', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'Tone: {{ $tone }}']);
+
+    expect($prompt->system(['tone' => 'friendly']))->toBe('Tone: friendly');
+});
+
+test('user() renders the user role via __call', function () {
+    $prompt = new Prompt('test', 1, ['user' => 'Input: {{ $input }}']);
+
+    expect($prompt->user(['input' => 'test data']))->toBe('Input: test data');
+});
+
+test('assistant() renders a custom role via __call', function () {
+    $prompt = new Prompt('test', 1, ['assistant' => 'Context: {{ $ctx }}']);
+
+    expect($prompt->assistant(['ctx' => 'background']))->toBe('Context: background');
+});
+
+test('__call returns empty string for missing role', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'text']);
+
+    expect($prompt->developer())->toBe('');
+});
+
+test('__call with no arguments returns raw content', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'Hello world']);
+
+    expect($prompt->system())->toBe('Hello world');
+});
+
+// =====================================================================
+// raw()
+// =====================================================================
+
+test('raw() returns content without interpolation', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'Hello {{ $name }}']);
+
+    expect($prompt->raw('system'))->toBe('Hello {{ $name }}');
+});
+
+test('raw() returns empty string for missing role', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'text']);
+
+    expect($prompt->raw('user'))->toBe('');
+});
+
+// =====================================================================
+// has()
+// =====================================================================
+
+test('has() returns true for existing role', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'text', 'user' => 'text']);
+
+    expect($prompt->has('system'))->toBeTrue()
+        ->and($prompt->has('user'))->toBeTrue();
+});
+
+test('has() returns false for missing role', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'text']);
+
+    expect($prompt->has('assistant'))->toBeFalse();
+});
+
+// =====================================================================
+// roles()
+// =====================================================================
+
+test('roles() returns all role names', function () {
+    $prompt = new Prompt('test', 1, [
+        'system'    => 'sys',
+        'user'      => 'usr',
+        'assistant' => 'ast',
+    ]);
+
+    expect($prompt->roles())->toBe(['system', 'user', 'assistant']);
+});
+
+test('roles() returns empty array when no roles', function () {
+    $prompt = new Prompt('test', 1);
+
+    expect($prompt->roles())->toBe([]);
+});
+
+// =====================================================================
+// toMessages()
+// =====================================================================
+
+test('toMessages() builds messages array for all roles', function () {
+    $prompt = new Prompt('test', 1, [
+        'system' => 'You are {{ $tone }}',
+        'user'   => 'Hello {{ $name }}',
+    ]);
+
+    $messages = $prompt->toMessages(['tone' => 'helpful', 'name' => 'Alice']);
+
+    expect($messages)->toBe([
+        ['role' => 'system', 'content' => 'You are helpful'],
+        ['role' => 'user', 'content' => 'Hello Alice'],
+    ]);
+});
+
+test('toMessages() respects the only parameter to filter roles', function () {
+    $prompt = new Prompt('test', 1, [
+        'system'    => 'sys',
+        'user'      => 'usr',
+        'assistant' => 'ast',
+    ]);
+
+    $messages = $prompt->toMessages([], ['system', 'assistant']);
+
+    expect($messages)->toBe([
+        ['role' => 'system', 'content' => 'sys'],
+        ['role' => 'assistant', 'content' => 'ast'],
+    ]);
+});
+
+test('toMessages() skips roles not present in the prompt', function () {
+    $prompt = new Prompt('test', 1, ['system' => 'sys']);
+
+    $messages = $prompt->toMessages([], ['system', 'user']);
+
+    expect($messages)->toBe([
+        ['role' => 'system', 'content' => 'sys'],
+    ]);
+});
+
+test('toMessages() returns empty array when prompt has no roles', function () {
+    $prompt = new Prompt('test', 1);
+
+    expect($prompt->toMessages())->toBe([]);
+});
+
+// =====================================================================
+// Interpolation edge cases
+// =====================================================================
 
 test('interpolation handles both syntaxes in the same string', function () {
-    $prompt = new Prompt('test', 1, '{{ $greeting }} and {{name}}!', 'user');
+    $prompt = new Prompt('test', 1, ['system' => '{{ $greeting }} and {{name}}!']);
 
-    expect($prompt->renderSystem(['greeting' => 'Hi', 'name' => 'World']))
+    expect($prompt->system(['greeting' => 'Hi', 'name' => 'World']))
         ->toBe('Hi and World!');
 });
 
 test('interpolation leaves unreplaced placeholders intact (missing variables)', function () {
-    $prompt = new Prompt('test', 1, 'Hello {{ $name }}, you are {{ $role }}', 'user');
+    $prompt = new Prompt('test', 1, ['system' => 'Hello {{ $name }}, you are {{ $role }}']);
 
-    expect($prompt->renderSystem(['name' => 'Alice']))
+    expect($prompt->system(['name' => 'Alice']))
         ->toBe('Hello Alice, you are {{ $role }}');
 });
 
 test('interpolation handles special characters in values', function () {
-    $prompt = new Prompt('test', 1, 'Content: {{ $html }}', 'user');
+    $prompt = new Prompt('test', 1, ['system' => 'Content: {{ $html }}']);
 
-    expect($prompt->renderSystem(['html' => '<script>alert("xss")</script>']))
+    expect($prompt->system(['html' => '<script>alert("xss")</script>']))
         ->toBe('Content: <script>alert("xss")</script>');
 });
 
 test('interpolation handles dollar sign in values', function () {
-    $prompt = new Prompt('test', 1, 'Price: {{ $price }}', 'user');
+    $prompt = new Prompt('test', 1, ['system' => 'Price: {{ $price }}']);
 
-    expect($prompt->renderSystem(['price' => '$100.00']))
+    expect($prompt->system(['price' => '$100.00']))
         ->toBe('Price: $100.00');
 });
 
 test('interpolation handles empty string value', function () {
-    $prompt = new Prompt('test', 1, 'Value: [{{ $val }}]', 'user');
+    $prompt = new Prompt('test', 1, ['system' => 'Value: [{{ $val }}]']);
 
-    expect($prompt->renderSystem(['val' => '']))->toBe('Value: []');
+    expect($prompt->system(['val' => '']))->toBe('Value: []');
 });
 
 test('interpolation handles numeric value via string cast', function () {
-    $prompt = new Prompt('test', 1, 'Count: {{ $count }}', 'user');
+    $prompt = new Prompt('test', 1, ['system' => 'Count: {{ $count }}']);
 
-    expect($prompt->renderSystem(['count' => 42]))->toBe('Count: 42');
+    expect($prompt->system(['count' => 42]))->toBe('Count: 42');
 });
 
 test('interpolation handles float value', function () {
-    $prompt = new Prompt('test', 1, 'Score: {{ $score }}', 'user');
+    $prompt = new Prompt('test', 1, ['system' => 'Score: {{ $score }}']);
 
-    expect($prompt->renderSystem(['score' => 3.14]))->toBe('Score: 3.14');
+    expect($prompt->system(['score' => 3.14]))->toBe('Score: 3.14');
 });
 
 test('interpolation replaces multiple occurrences of the same variable', function () {
-    $prompt = new Prompt('test', 1, '{{ $name }} said hello to {{ $name }}', 'user');
+    $prompt = new Prompt('test', 1, ['system' => '{{ $name }} said hello to {{ $name }}']);
 
-    expect($prompt->renderSystem(['name' => 'Alice']))
+    expect($prompt->system(['name' => 'Alice']))
         ->toBe('Alice said hello to Alice');
 });
 
 test('interpolation handles multiple different variables', function () {
-    $prompt = new Prompt('test', 1, '{{ $a }} {{ $b }} {{ $c }}', 'user');
+    $prompt = new Prompt('test', 1, ['system' => '{{ $a }} {{ $b }} {{ $c }}']);
 
-    expect($prompt->renderSystem(['a' => 'X', 'b' => 'Y', 'c' => 'Z']))
+    expect($prompt->system(['a' => 'X', 'b' => 'Y', 'c' => 'Z']))
         ->toBe('X Y Z');
 });
 
 test('interpolation handles multiline content', function () {
     $content = "Line 1: {{ \$name }}\nLine 2: {{ \$role }}\nLine 3: done";
-    $prompt  = new Prompt('test', 1, $content, 'user');
+    $prompt  = new Prompt('test', 1, ['system' => $content]);
 
-    expect($prompt->renderSystem(['name' => 'Alice', 'role' => 'admin']))
+    expect($prompt->system(['name' => 'Alice', 'role' => 'admin']))
         ->toBe("Line 1: Alice\nLine 2: admin\nLine 3: done");
 });
 
-// --- Arrayable contract ---
+// =====================================================================
+// Arrayable contract
+// =====================================================================
 
 test('Prompt implements Arrayable', function () {
-    $prompt = new Prompt('test', 1, 'sys', 'usr');
+    $prompt = new Prompt('test', 1, ['system' => 'sys']);
 
     expect($prompt)->toBeInstanceOf(\Illuminate\Contracts\Support\Arrayable::class);
 });

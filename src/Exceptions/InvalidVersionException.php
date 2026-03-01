@@ -9,8 +9,8 @@ class InvalidVersionException extends PromptForgeException
     /**
      * * Create an exception for a non-existent version.
      *
-     * @param  string  $name  The name of the prompt.
-     * @param  int  $version  The version number that was not found.
+     * @param string $name The name of the prompt.
+     * @param int $version The version number that was not found.
      */
     public static function forPrompt(string $name, int $version): self
     {

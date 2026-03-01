@@ -85,7 +85,7 @@ class ListPromptsCommand extends Command
     protected function getPromptDescription(string $name, int $version): string
     {
         try {
-            $prompt = $this->manager->prompt($name, $version);
+            $prompt = $this->manager->get($name, $version);
 
             return $prompt->metadata()['description'] ?? '';
         } catch (\Exception $e) {

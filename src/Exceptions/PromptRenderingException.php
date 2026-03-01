@@ -9,8 +9,8 @@ class PromptRenderingException extends PromptForgeException
     /**
      * Create a new exception for a missing variable during prompt rendering.
      *
-     * @param  string  $variable  The name of the missing variable.
-     * @param  string  $promptName  The name of the prompt being rendered.
+     * @param string $variable The name of the missing variable.
+     * @param string $promptName The name of the prompt being rendered.
      */
     public static function dueToMissingVariable(string $variable, string $promptName): self
     {

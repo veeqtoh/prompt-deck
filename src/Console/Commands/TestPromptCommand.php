@@ -40,7 +40,7 @@ class TestPromptCommand extends Command
 
         try {
             $prompt = $version
-                ? $this->manager->prompt($name, $version)
+                ? $this->manager->get($name, $version)
                 : $this->manager->active($name);
 
             $this->info("Testing prompt [{$name}] version {$prompt->version()}\n");
@@ -50,10 +50,10 @@ class TestPromptCommand extends Command
             }
 
             $this->line("\n--- SYSTEM PROMPT ---");
-            $this->line($prompt->renderSystem($variables));
+            $this->line($prompt->system($variables));
 
             $this->line("\n--- USER PROMPT ---");
-            $this->line($prompt->renderUser(array_merge($variables, ['input' => $input])));
+            $this->line($prompt->user(array_merge($variables, ['input' => $input])));
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
