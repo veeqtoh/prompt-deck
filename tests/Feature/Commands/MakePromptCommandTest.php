@@ -2,35 +2,38 @@
 
 declare(strict_types=1);
 
-test('make:prompt creates both user and system prompt files by default', function () {
+test('make:prompt creates only a system prompt file by default', function () {
     $this->artisan('make:prompt', ['name' => 'my-prompt'])
         ->expectsOutput('Prompt [my-prompt] created successfully at version 1.')
         ->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/my-prompt/v1/user.md"))->toBeTrue()
-        ->and(file_exists("{$this->tempDir}/my-prompt/v1/system.md"))->toBeTrue()
+    expect(file_exists("{$this->tempDir}/my-prompt/v1/system.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/my-prompt/v1/user.md"))->toBeFalse()
         ->and(file_exists("{$this->tempDir}/my-prompt/metadata.json"))->toBeTrue();
 
     $meta = json_decode(file_get_contents("{$this->tempDir}/my-prompt/metadata.json"), true);
     expect($meta['name'])->toBe('my-prompt')
         ->and($meta)->toHaveKeys(['name', 'description', 'roles', 'variables', 'created_at'])
-        ->and($meta['roles'])->toBe(['system', 'user']);
+        ->and($meta['roles'])->toBe(['system']);
 });
 
-test('make:prompt --no-system skips creating system prompt file', function () {
-    $this->artisan('make:prompt', ['name' => 'user-only', '--no-system' => true])
+test('make:prompt --user also creates a user prompt file', function () {
+    $this->artisan('make:prompt', ['name' => 'with-user', '--user' => true])
         ->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/user-only/v1/user.md"))->toBeTrue()
-        ->and(file_exists("{$this->tempDir}/user-only/v1/system.md"))->toBeFalse();
+    expect(file_exists("{$this->tempDir}/with-user/v1/system.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/with-user/v1/user.md"))->toBeTrue();
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/with-user/metadata.json"), true);
+    expect($meta['roles'])->toBe(['system', 'user']);
 });
 
-test('make:prompt -u skips creating system prompt file', function () {
-    $this->artisan('make:prompt', ['name' => 'shorthand-no-sys', '-u' => true])
+test('make:prompt -u also creates a user prompt file', function () {
+    $this->artisan('make:prompt', ['name' => 'shorthand-user', '-u' => true])
         ->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/shorthand-no-sys/v1/user.md"))->toBeTrue()
-        ->and(file_exists("{$this->tempDir}/shorthand-no-sys/v1/system.md"))->toBeFalse();
+    expect(file_exists("{$this->tempDir}/shorthand-user/v1/system.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/shorthand-user/v1/user.md"))->toBeTrue();
 });
 
 test('make:prompt fails when prompt exists without --force', function () {
@@ -47,13 +50,10 @@ test('make:prompt --force overwrites existing prompt', function () {
     $this->artisan('make:prompt', ['name' => 'overwrite', '--force' => true])
         ->assertSuccessful();
 
-    // Both prompts should be replaced with default stub content.
-    $userContent = file_get_contents("{$this->tempDir}/overwrite/v1/user.md");
-    expect($userContent)->not->toBe('old user')
-        ->and($userContent)->toContain('{{ $name }}');
-
+    // System prompt should be replaced with default stub content.
     $systemContent = file_get_contents("{$this->tempDir}/overwrite/v1/system.md");
-    expect($systemContent)->toContain('AI assistant');
+    expect($systemContent)->not->toBe('old system')
+        ->and($systemContent)->toContain('AI assistant');
 });
 
 test('make:prompt -f overwrites existing prompt', function () {
@@ -62,20 +62,16 @@ test('make:prompt -f overwrites existing prompt', function () {
     $this->artisan('make:prompt', ['name' => 'overwrite', '-f' => true])
         ->assertSuccessful();
 
-    // Both prompts should be replaced with default stub content.
-    $userContent = file_get_contents("{$this->tempDir}/overwrite/v1/user.md");
-    expect($userContent)->not->toBe('old user')
-        ->and($userContent)->toContain('{{ $name }}');
-
     $systemContent = file_get_contents("{$this->tempDir}/overwrite/v1/system.md");
-    expect($systemContent)->toContain('AI assistant');
+    expect($systemContent)->not->toBe('old system')
+        ->and($systemContent)->toContain('AI assistant');
 });
 
-test('make:prompt --from uses custom stub content', function () {
+test('make:prompt --from uses custom stub for user prompt', function () {
     $stubPath = "{$this->tempDir}/custom-stub.md";
     file_put_contents($stubPath, 'Custom stub content for {{ $topic }}');
 
-    $this->artisan('make:prompt', ['name' => 'from-stub', '--from' => $stubPath])
+    $this->artisan('make:prompt', ['name' => 'from-stub', '--from' => $stubPath, '--user' => true])
         ->assertSuccessful();
 
     $content = file_get_contents("{$this->tempDir}/from-stub/v1/user.md");
@@ -83,7 +79,7 @@ test('make:prompt --from uses custom stub content', function () {
 });
 
 test('make:prompt --from with non-existent stub falls back to default', function () {
-    $this->artisan('make:prompt', ['name' => 'bad-stub', '--from' => '/nonexistent/stub.md'])
+    $this->artisan('make:prompt', ['name' => 'bad-stub', '--from' => '/nonexistent/stub.md', '--user' => true])
         ->assertSuccessful();
 
     $content = file_get_contents("{$this->tempDir}/bad-stub/v1/user.md");
@@ -100,7 +96,7 @@ test('make:prompt creates base directory if it does not exist', function () {
     $this->artisan('make:prompt', ['name' => 'nested-prompt'])
         ->assertSuccessful();
 
-    expect(file_exists("{$newPath}/nested-prompt/v1/user.md"))->toBeTrue();
+    expect(file_exists("{$newPath}/nested-prompt/v1/system.md"))->toBeTrue();
 });
 
 test('make:prompt respects config extension', function () {
@@ -109,17 +105,17 @@ test('make:prompt respects config extension', function () {
     $this->artisan('make:prompt', ['name' => 'txt-prompt'])
         ->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/txt-prompt/v1/user.txt"))->toBeTrue()
-        ->and(file_exists("{$this->tempDir}/txt-prompt/v1/user.md"))->toBeFalse();
+    expect(file_exists("{$this->tempDir}/txt-prompt/v1/system.txt"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/txt-prompt/v1/system.md"))->toBeFalse();
 });
 
-test('make:prompt default stub contains expected placeholders', function () {
+test('make:prompt default system stub contains expected content', function () {
     $this->artisan('make:prompt', ['name' => 'stub-check'])
         ->assertSuccessful();
 
-    $content = file_get_contents("{$this->tempDir}/stub-check/v1/user.md");
-    expect($content)->toContain('{{ $name }}')
-        ->and($content)->toContain('{{ $input }}');
+    $content = file_get_contents("{$this->tempDir}/stub-check/v1/system.md");
+    expect($content)->toContain('AI assistant')
+        ->and($content)->toContain('{{ $tone }}');
 });
 
 // =====================================================================
@@ -131,7 +127,7 @@ test('make:prompt converts snake_case name to kebab-case', function () {
         ->expectsOutput('Prompt [my-cool-prompt] created successfully at version 1.')
         ->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/my-cool-prompt/v1/user.md"))->toBeTrue()
+    expect(file_exists("{$this->tempDir}/my-cool-prompt/v1/system.md"))->toBeTrue()
         ->and(file_exists("{$this->tempDir}/my_cool_prompt"))->toBeFalse();
 
     $meta = json_decode(file_get_contents("{$this->tempDir}/my-cool-prompt/metadata.json"), true);
@@ -143,7 +139,7 @@ test('make:prompt converts PascalCase name to kebab-case', function () {
         ->expectsOutput('Prompt [my-prompt] created successfully at version 1.')
         ->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/my-prompt/v1/user.md"))->toBeTrue()
+    expect(file_exists("{$this->tempDir}/my-prompt/v1/system.md"))->toBeTrue()
         ->and(file_exists("{$this->tempDir}/MyPrompt"))->toBeFalse();
 
     $meta = json_decode(file_get_contents("{$this->tempDir}/my-prompt/metadata.json"), true);
@@ -155,7 +151,7 @@ test('make:prompt converts camelCase name to kebab-case', function () {
         ->expectsOutput('Prompt [greeting-message] created successfully at version 1.')
         ->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/greeting-message/v1/user.md"))->toBeTrue();
+    expect(file_exists("{$this->tempDir}/greeting-message/v1/system.md"))->toBeTrue();
 });
 
 test('make:prompt keeps already kebab-case name unchanged', function () {
@@ -163,7 +159,7 @@ test('make:prompt keeps already kebab-case name unchanged', function () {
         ->expectsOutput('Prompt [already-kebab] created successfully at version 1.')
         ->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/already-kebab/v1/user.md"))->toBeTrue();
+    expect(file_exists("{$this->tempDir}/already-kebab/v1/system.md"))->toBeTrue();
 });
 
 test('make:prompt converts UPPERCASE to lowercase kebab', function () {
@@ -171,7 +167,7 @@ test('make:prompt converts UPPERCASE to lowercase kebab', function () {
         ->expectsOutput('Prompt [loud-prompt] created successfully at version 1.')
         ->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/loud-prompt/v1/user.md"))->toBeTrue();
+    expect(file_exists("{$this->tempDir}/loud-prompt/v1/system.md"))->toBeTrue();
 });
 
 test('make:prompt handles mixed separators', function () {
@@ -179,7 +175,7 @@ test('make:prompt handles mixed separators', function () {
         ->expectsOutput('Prompt [my-cool-prompt] created successfully at version 1.')
         ->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/my-cool-prompt/v1/user.md"))->toBeTrue();
+    expect(file_exists("{$this->tempDir}/my-cool-prompt/v1/system.md"))->toBeTrue();
 });
 
 // =====================================================================
@@ -187,7 +183,7 @@ test('make:prompt handles mixed separators', function () {
 // =====================================================================
 
 test('make:prompt loads default user stub from package stubs directory', function () {
-    $this->artisan('make:prompt', ['name' => 'stub-load'])
+    $this->artisan('make:prompt', ['name' => 'stub-load', '--user' => true])
         ->assertSuccessful();
 
     $content  = file_get_contents("{$this->tempDir}/stub-load/v1/user.md");
@@ -212,14 +208,14 @@ test('make:prompt prefers published stubs over package defaults', function () {
     // Simulate a published stub in the app's stubs/prompt-forge/ directory.
     $publishedDir = $this->app->basePath('stubs/prompt-forge');
     @mkdir($publishedDir, 0755, true);
-    file_put_contents("{$publishedDir}/user-prompt.stub", 'Published user stub for {{ $name }}');
+    file_put_contents("{$publishedDir}/system-prompt.stub", 'Published system stub for {{ $name }}');
 
     try {
         $this->artisan('make:prompt', ['name' => 'published-stub'])
             ->assertSuccessful();
 
-        $content = file_get_contents("{$this->tempDir}/published-stub/v1/user.md");
-        expect($content)->toBe('Published user stub for {{ $name }}');
+        $content = file_get_contents("{$this->tempDir}/published-stub/v1/system.md");
+        expect($content)->toBe('Published system stub for {{ $name }}');
     } finally {
         // Always clean up, even if assertions fail.
         $this->deleteDirectory($this->app->basePath('stubs'));
@@ -252,8 +248,8 @@ test('make:prompt --role creates additional role prompt files', function () {
         '--role' => ['assistant', 'developer'],
     ])->assertSuccessful();
 
-    expect(file_exists("{$this->tempDir}/multi-role/v1/user.md"))->toBeTrue()
-        ->and(file_exists("{$this->tempDir}/multi-role/v1/system.md"))->toBeTrue()
+    expect(file_exists("{$this->tempDir}/multi-role/v1/system.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/multi-role/v1/user.md"))->toBeFalse()
         ->and(file_exists("{$this->tempDir}/multi-role/v1/assistant.md"))->toBeTrue()
         ->and(file_exists("{$this->tempDir}/multi-role/v1/developer.md"))->toBeTrue();
 });
@@ -286,18 +282,18 @@ test('make:prompt --role records all roles in metadata', function () {
     ])->assertSuccessful();
 
     $meta = json_decode(file_get_contents("{$this->tempDir}/meta-roles/metadata.json"), true);
-    expect($meta['roles'])->toBe(['system', 'user', 'assistant', 'tool']);
+    expect($meta['roles'])->toBe(['system', 'assistant', 'tool']);
 });
 
-test('make:prompt --no-system with --role records only user and extra roles in metadata', function () {
+test('make:prompt --user with --role records system, user and extra roles in metadata', function () {
     $this->artisan('make:prompt', [
-        'name'        => 'no-sys-roles',
-        '--no-system' => true,
-        '--role'      => ['assistant'],
+        'name'   => 'all-roles',
+        '--user' => true,
+        '--role' => ['assistant'],
     ])->assertSuccessful();
 
-    $meta = json_decode(file_get_contents("{$this->tempDir}/no-sys-roles/metadata.json"), true);
-    expect($meta['roles'])->toBe(['user', 'assistant']);
+    $meta = json_decode(file_get_contents("{$this->tempDir}/all-roles/metadata.json"), true);
+    expect($meta['roles'])->toBe(['system', 'user', 'assistant']);
 });
 
 test('make:prompt without --role creates no extra role files', function () {
@@ -308,7 +304,7 @@ test('make:prompt without --role creates no extra role files', function () {
     $filenames = array_map('basename', $files);
     sort($filenames);
 
-    expect($filenames)->toBe(['system.md', 'user.md']);
+    expect($filenames)->toBe(['system.md']);
 });
 
 test('make:prompt --role respects config extension for role files', function () {
@@ -381,8 +377,8 @@ test('make:prompt -i prompts for additional roles interactively', function () {
 
     expect(file_exists("{$this->tempDir}/interactive-test/v1/assistant.md"))->toBeTrue()
         ->and(file_exists("{$this->tempDir}/interactive-test/v1/tool.md"))->toBeTrue()
-        ->and(file_exists("{$this->tempDir}/interactive-test/v1/user.md"))->toBeTrue()
-        ->and(file_exists("{$this->tempDir}/interactive-test/v1/system.md"))->toBeTrue();
+        ->and(file_exists("{$this->tempDir}/interactive-test/v1/system.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/interactive-test/v1/user.md"))->toBeFalse();
 });
 
 test('make:prompt -i with empty answer creates no extra roles', function () {
@@ -397,7 +393,7 @@ test('make:prompt -i with empty answer creates no extra roles', function () {
     $filenames = array_map('basename', $files);
     sort($filenames);
 
-    expect($filenames)->toBe(['system.md', 'user.md']);
+    expect($filenames)->toBe(['system.md']);
 });
 
 test('make:prompt --role takes precedence over interactive prompt', function () {

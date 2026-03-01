@@ -11,7 +11,7 @@ class MakePromptCommand extends Command
 {
     protected $signature = 'make:prompt {name : The name of the prompt}
                             {--from= : Path to a stub file to use as template}
-                            {--u|no-system : Skip creating a system prompt file}
+                            {--u|user : Also create a user prompt file}
                             {--role=* : Additional roles to create prompt files for (e.g. assistant, developer, tool)}
                             {--i|interactive : Interactively choose additional roles}
                             {--f|force : Overwrite existing prompt}';
@@ -52,15 +52,15 @@ class MakePromptCommand extends Command
         // Determine file extension
         $extension = config('prompt-forge.extension', 'md');
 
-        // Create user prompt file
-        $userFile    = "{$versionPath}/user.{$extension}";
-        $stubContent = $this->getStubContent($this->option('from'));
-        $this->files->put($userFile, $stubContent);
+        // Create system prompt file (always created by default).
+        $systemFile = "{$versionPath}/system.{$extension}";
+        $this->files->put($systemFile, $this->getSystemStubContent());
 
-        // Create system prompt unless --no-system is passed.
-        if (! $this->option('no-system')) {
-            $systemFile = "{$versionPath}/system.{$extension}";
-            $this->files->put($systemFile, $this->getSystemStubContent());
+        // Create user prompt file only when --user is passed.
+        if ($this->option('user')) {
+            $userFile    = "{$versionPath}/user.{$extension}";
+            $stubContent = $this->getStubContent($this->option('from'));
+            $this->files->put($userFile, $stubContent);
         }
 
         // Handle additional roles.
@@ -73,7 +73,12 @@ class MakePromptCommand extends Command
         }
 
         // Create metadata.json
-        $allRoles = $this->option('no-system') ? ['user'] : ['system', 'user'];
+        $allRoles = ['system'];
+
+        if ($this->option('user')) {
+            $allRoles[] = 'user';
+        }
+
         $allRoles = array_merge($allRoles, array_map([$this, 'toKebabCase'], $roles));
 
         $metadata = [
