@@ -96,12 +96,7 @@ class PromptForgeProvider extends ServiceProvider
     protected function registerAiSdkIntegration(): void
     {
         if (class_exists(\Laravel\Ai\AiServiceProvider::class)) {
-            // Bind a factory for creating AI-aware agents
-            $this->app->singleton(\Veeqtoh\PromptForge\Ai\AgentFactory::class);
-
-            // If you want to automatically decorate Agent classes, you could
-            // listen for when an Agent is resolved from the container, but that's advanced.
-            // For now, we'll let the factory handle it.
+            $this->app->singleton(\Veeqtoh\PromptForge\Ai\TrackPromptMiddleware::class);
         }
     }
 }
