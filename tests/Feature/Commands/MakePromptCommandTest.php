@@ -13,7 +13,8 @@ test('make:prompt creates both user and system prompt files by default', functio
 
     $meta = json_decode(file_get_contents("{$this->tempDir}/my-prompt/metadata.json"), true);
     expect($meta['name'])->toBe('my-prompt')
-        ->and($meta)->toHaveKeys(['name', 'description', 'variables', 'created_at']);
+        ->and($meta)->toHaveKeys(['name', 'description', 'roles', 'variables', 'created_at'])
+        ->and($meta['roles'])->toBe(['system', 'user']);
 });
 
 test('make:prompt --no-system skips creating system prompt file', function () {
@@ -239,4 +240,172 @@ test('make:prompt user stub contains expected placeholders', function () {
 
     expect($content)->toContain('{{ $name }}')
         ->and($content)->toContain('{{ $input }}');
+});
+
+// =====================================================================
+// Extra role tests (--role option)
+// =====================================================================
+
+test('make:prompt --role creates additional role prompt files', function () {
+    $this->artisan('make:prompt', [
+        'name'   => 'multi-role',
+        '--role' => ['assistant', 'developer'],
+    ])->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/multi-role/v1/user.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/multi-role/v1/system.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/multi-role/v1/assistant.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/multi-role/v1/developer.md"))->toBeTrue();
+});
+
+test('make:prompt --role replaces {{ $role }} placeholder in generated file', function () {
+    $this->artisan('make:prompt', [
+        'name'   => 'role-content',
+        '--role' => ['assistant'],
+    ])->assertSuccessful();
+
+    $content = file_get_contents("{$this->tempDir}/role-content/v1/assistant.md");
+    expect($content)->toContain('assistant')
+        ->and($content)->not->toContain('{{ $role }}');
+});
+
+test('make:prompt --role converts role names to kebab-case', function () {
+    $this->artisan('make:prompt', [
+        'name'   => 'kebab-roles',
+        '--role' => ['ToolCall'],
+    ])->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/kebab-roles/v1/tool-call.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/kebab-roles/v1/ToolCall.md"))->toBeFalse();
+});
+
+test('make:prompt --role records all roles in metadata', function () {
+    $this->artisan('make:prompt', [
+        'name'   => 'meta-roles',
+        '--role' => ['assistant', 'tool'],
+    ])->assertSuccessful();
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/meta-roles/metadata.json"), true);
+    expect($meta['roles'])->toBe(['system', 'user', 'assistant', 'tool']);
+});
+
+test('make:prompt --no-system with --role records only user and extra roles in metadata', function () {
+    $this->artisan('make:prompt', [
+        'name'        => 'no-sys-roles',
+        '--no-system' => true,
+        '--role'      => ['assistant'],
+    ])->assertSuccessful();
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/no-sys-roles/metadata.json"), true);
+    expect($meta['roles'])->toBe(['user', 'assistant']);
+});
+
+test('make:prompt without --role creates no extra role files', function () {
+    $this->artisan('make:prompt', ['name' => 'no-extras'])
+        ->assertSuccessful();
+
+    $files     = glob("{$this->tempDir}/no-extras/v1/*.md");
+    $filenames = array_map('basename', $files);
+    sort($filenames);
+
+    expect($filenames)->toBe(['system.md', 'user.md']);
+});
+
+test('make:prompt --role respects config extension for role files', function () {
+    $this->app['config']->set('prompt-forge.extension', 'txt');
+
+    $this->artisan('make:prompt', [
+        'name'   => 'ext-role',
+        '--role' => ['assistant'],
+    ])->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/ext-role/v1/assistant.txt"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/ext-role/v1/assistant.md"))->toBeFalse();
+});
+
+test('make:prompt --role with --force overwrites role files', function () {
+    // Create initial prompt with an assistant role.
+    $this->artisan('make:prompt', [
+        'name'   => 'force-roles',
+        '--role' => ['assistant'],
+    ])->assertSuccessful();
+
+    $original = file_get_contents("{$this->tempDir}/force-roles/v1/assistant.md");
+
+    // Overwrite with a different extra role via --force.
+    $this->artisan('make:prompt', [
+        'name'    => 'force-roles',
+        '--role'  => ['developer'],
+        '--force' => true,
+    ])->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/force-roles/v1/developer.md"))->toBeTrue();
+});
+
+test('make:prompt role stub file exists in package stubs directory', function () {
+    $stubFile = realpath(__DIR__.'/../../../stubs/role-prompt.stub');
+
+    expect($stubFile)->not->toBeFalse('role-prompt.stub should exist in package stubs/')
+        ->and(file_get_contents($stubFile))->toContain('{{ $role }}');
+});
+
+test('make:prompt prefers published role stub over package default', function () {
+    $publishedDir = $this->app->basePath('stubs/prompt-forge');
+    @mkdir($publishedDir, 0755, true);
+    file_put_contents("{$publishedDir}/role-prompt.stub", 'Custom {{ $role }} stub');
+
+    try {
+        $this->artisan('make:prompt', [
+            'name'   => 'pub-role-stub',
+            '--role' => ['assistant'],
+        ])->assertSuccessful();
+
+        $content = file_get_contents("{$this->tempDir}/pub-role-stub/v1/assistant.md");
+        expect($content)->toBe('Custom assistant stub');
+    } finally {
+        $this->deleteDirectory($this->app->basePath('stubs'));
+    }
+});
+
+// =====================================================================
+// Interactive mode tests (--interactive / -i)
+// =====================================================================
+
+test('make:prompt -i prompts for additional roles interactively', function () {
+    $this->artisan('make:prompt', ['name' => 'interactive-test', '--interactive' => true])
+        ->expectsQuestion(
+            'Any additional roles to create prompt files for? (comma-separated, e.g. assistant,developer — press Enter to skip)',
+            'assistant, tool'
+        )
+        ->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/interactive-test/v1/assistant.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/interactive-test/v1/tool.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/interactive-test/v1/user.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/interactive-test/v1/system.md"))->toBeTrue();
+});
+
+test('make:prompt -i with empty answer creates no extra roles', function () {
+    $this->artisan('make:prompt', ['name' => 'interactive-skip', '-i' => true])
+        ->expectsQuestion(
+            'Any additional roles to create prompt files for? (comma-separated, e.g. assistant,developer — press Enter to skip)',
+            ''
+        )
+        ->assertSuccessful();
+
+    $files     = glob("{$this->tempDir}/interactive-skip/v1/*.md");
+    $filenames = array_map('basename', $files);
+    sort($filenames);
+
+    expect($filenames)->toBe(['system.md', 'user.md']);
+});
+
+test('make:prompt --role takes precedence over interactive prompt', function () {
+    // When --role is specified, the interactive prompt should NOT fire.
+    $this->artisan('make:prompt', [
+        'name'   => 'role-no-ask',
+        '--role' => ['developer'],
+    ])->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/role-no-ask/v1/developer.md"))->toBeTrue();
 });

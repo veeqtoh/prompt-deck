@@ -12,6 +12,8 @@ class MakePromptCommand extends Command
     protected $signature = 'make:prompt {name : The name of the prompt}
                             {--from= : Path to a stub file to use as template}
                             {--u|no-system : Skip creating a system prompt file}
+                            {--role=* : Additional roles to create prompt files for (e.g. assistant, developer, tool)}
+                            {--i|interactive : Interactively choose additional roles}
                             {--f|force : Overwrite existing prompt}';
 
     protected $description = 'Create a new prompt structure for your AI agent';
@@ -61,10 +63,23 @@ class MakePromptCommand extends Command
             $this->files->put($systemFile, $this->getSystemStubContent());
         }
 
+        // Handle additional roles.
+        $roles = $this->resolveExtraRoles();
+
+        foreach ($roles as $role) {
+            $roleName = $this->toKebabCase($role);
+            $roleFile = "{$versionPath}/{$roleName}.{$extension}";
+            $this->files->put($roleFile, $this->getRoleStubContent($roleName));
+        }
+
         // Create metadata.json
+        $allRoles = $this->option('no-system') ? ['user'] : ['system', 'user'];
+        $allRoles = array_merge($allRoles, array_map([$this, 'toKebabCase'], $roles));
+
         $metadata = [
             'name'        => $name,
             'description' => '',
+            'roles'       => array_values($allRoles),
             'variables'   => [],
             'created_at'  => now()->toIso8601String(),
         ];
@@ -87,6 +102,49 @@ class MakePromptCommand extends Command
     protected function getSystemStubContent(): string
     {
         return $this->files->get($this->resolveStubPath('system-prompt.stub'));
+    }
+
+    /**
+     * Get the rendered content for an extra role prompt file.
+     *
+     * The generic role stub's {{ $role }} placeholder is replaced at
+     * scaffolding time so each file is personalised to its role.
+     */
+    protected function getRoleStubContent(string $role): string
+    {
+        $content = $this->files->get($this->resolveStubPath('role-prompt.stub'));
+
+        return str_replace('{{ $role }}', $role, $content);
+    }
+
+    /**
+     * Determine the extra roles to scaffold.
+     *
+     * Uses the --role option values when provided; otherwise, in an
+     * interactive terminal, prompts the user with a free-text input.
+     *
+     * @return list<string>
+     */
+    protected function resolveExtraRoles(): array
+    {
+        /** @var list<string> $roles */
+        $roles = $this->option('role');
+
+        if (! empty($roles)) {
+            return array_values(array_filter(array_map('trim', $roles)));
+        }
+
+        if (! $this->option('interactive')) {
+            return [];
+        }
+
+        $input = $this->ask('Any additional roles to create prompt files for? (comma-separated, e.g. assistant,developer — press Enter to skip)');
+
+        if (! $input) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', $input))));
     }
 
     /**
