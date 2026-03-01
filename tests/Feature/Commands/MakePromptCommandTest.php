@@ -24,6 +24,14 @@ test('make:prompt --no-system skips creating system prompt file', function () {
         ->and(file_exists("{$this->tempDir}/user-only/v1/system.md"))->toBeFalse();
 });
 
+test('make:prompt -u skips creating system prompt file', function () {
+    $this->artisan('make:prompt', ['name' => 'shorthand-no-sys', '-u' => true])
+        ->assertSuccessful();
+
+    expect(file_exists("{$this->tempDir}/shorthand-no-sys/v1/user.md"))->toBeTrue()
+        ->and(file_exists("{$this->tempDir}/shorthand-no-sys/v1/system.md"))->toBeFalse();
+});
+
 test('make:prompt fails when prompt exists without --force', function () {
     $this->createPromptFixture('existing', 1, 'sys', 'usr');
 
@@ -36,6 +44,21 @@ test('make:prompt --force overwrites existing prompt', function () {
     $this->createPromptFixture('overwrite', 1, 'old system', 'old user');
 
     $this->artisan('make:prompt', ['name' => 'overwrite', '--force' => true])
+        ->assertSuccessful();
+
+    // Both prompts should be replaced with default stub content.
+    $userContent = file_get_contents("{$this->tempDir}/overwrite/v1/user.md");
+    expect($userContent)->not->toBe('old user')
+        ->and($userContent)->toContain('{{ $name }}');
+
+    $systemContent = file_get_contents("{$this->tempDir}/overwrite/v1/system.md");
+    expect($systemContent)->toContain('AI assistant');
+});
+
+test('make:prompt -f overwrites existing prompt', function () {
+    $this->createPromptFixture('overwrite', 1, 'old system', 'old user');
+
+    $this->artisan('make:prompt', ['name' => 'overwrite', '-f' => true])
         ->assertSuccessful();
 
     // Both prompts should be replaced with default stub content.
@@ -190,17 +213,16 @@ test('make:prompt prefers published stubs over package defaults', function () {
     @mkdir($publishedDir, 0755, true);
     file_put_contents("{$publishedDir}/user-prompt.stub", 'Published user stub for {{ $name }}');
 
-    $this->artisan('make:prompt', ['name' => 'published-stub'])
-        ->assertSuccessful();
+    try {
+        $this->artisan('make:prompt', ['name' => 'published-stub'])
+            ->assertSuccessful();
 
-    $content = file_get_contents("{$this->tempDir}/published-stub/v1/user.md");
-    expect($content)->toBe('Published user stub for {{ $name }}');
-
-    // Clean up.
-    @unlink("{$publishedDir}/user-prompt.stub");
-    @rmdir($publishedDir);
-    @rmdir($this->app->basePath('stubs/prompt-forge'));
-    @rmdir($this->app->basePath('stubs'));
+        $content = file_get_contents("{$this->tempDir}/published-stub/v1/user.md");
+        expect($content)->toBe('Published user stub for {{ $name }}');
+    } finally {
+        // Always clean up, even if assertions fail.
+        $this->deleteDirectory($this->app->basePath('stubs'));
+    }
 });
 
 test('make:prompt system stub contains expected AI assistant content', function () {

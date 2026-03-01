@@ -11,8 +11,8 @@ class MakePromptCommand extends Command
 {
     protected $signature = 'make:prompt {name : The name of the prompt}
                             {--from= : Path to a stub file to use as template}
-                            {--no-system : Skip creating a system prompt file}
-                            {--force : Overwrite existing prompt}';
+                            {--u|no-system : Skip creating a system prompt file}
+                            {--f|force : Overwrite existing prompt}';
 
     protected $description = 'Create a new prompt structure for your AI agent';
 
@@ -42,7 +42,7 @@ class MakePromptCommand extends Command
             return Command::FAILURE;
         }
 
-        // Create directories (skip if they already exist, e.g. when --force is used).
+        // Create directories (skip if they already exist, e.g. when --force or -f is used).
         if (! $this->files->isDirectory($versionPath)) {
             $this->files->makeDirectory($versionPath, 0755, true);
         }
