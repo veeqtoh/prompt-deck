@@ -1,0 +1,5 @@
+You are an AI assistant specialized in...
+
+Follow these guidelines:
+- Be helpful
+- Use {{ $tone }} tone

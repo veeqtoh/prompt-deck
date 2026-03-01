@@ -34,7 +34,7 @@ test('config is merged from package config file', function () {
 test('Artisan commands are registered', function () {
     $commands = \Illuminate\Support\Facades\Artisan::all();
 
-    expect($commands)->toHaveKey('prompt:make')
+    expect($commands)->toHaveKey('make:prompt')
         ->and($commands)->toHaveKey('prompt:list')
         ->and($commands)->toHaveKey('prompt:activate')
         ->and($commands)->toHaveKey('prompt:diff')
@@ -49,4 +49,14 @@ test('publishable config is registered', function () {
     );
 
     expect($publishes)->not->toBeEmpty();
+});
+
+test('publishable stubs are registered', function () {
+    $publishes = \Illuminate\Support\ServiceProvider::pathsToPublish(
+        \Veeqtoh\PromptForge\Providers\PromptForgeProvider::class,
+        'prompt-forge-stubs'
+    );
+
+    expect($publishes)->not->toBeEmpty()
+        ->and(array_values($publishes))->each->toContain('stubs/prompt-forge/');
 });
