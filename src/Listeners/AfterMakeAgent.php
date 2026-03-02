@@ -34,6 +34,11 @@ class AfterMakeAgent
             return;
         }
 
+        // Respect the configuration toggle.
+        if (! config('prompt-forge.scaffold_on_make_agent', true)) {
+            return;
+        }
+
         $agentName = $this->resolveAgentName($event);
 
         if ($agentName === null) {

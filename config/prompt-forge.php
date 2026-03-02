@@ -62,4 +62,16 @@ return [
         'enabled'    => env('PROMPTFORGE_TRACKING_ENABLED', env('APP_DEBUG', false) ? false : true),
         'connection' => env('PROMPTFORGE_DB_CONNECTION'), // null for default
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auto-Scaffold Prompt on make:agent
+    |--------------------------------------------------------------------------
+    |
+    | When the Laravel AI SDK is installed and this option is enabled,
+    | PromptForge will automatically create a matching prompt directory
+    | whenever you run `php artisan make:agent`. Set to false to disable.
+    |
+    */
+    'scaffold_on_make_agent' => env('PROMPTFORGE_SCAFFOLD_ON_MAKE_AGENT', true),
 ];

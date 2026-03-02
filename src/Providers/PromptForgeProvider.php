@@ -101,10 +101,12 @@ class PromptForgeProvider extends ServiceProvider
             $this->app->singleton(\Veeqtoh\PromptForge\Ai\TrackPromptMiddleware::class);
 
             // Auto-scaffold a prompt when `make:agent` finishes successfully.
-            Event::listen(
-                CommandFinished::class,
-                \Veeqtoh\PromptForge\Listeners\AfterMakeAgent::class
-            );
+            if (config('prompt-forge.scaffold_on_make_agent', true)) {
+                Event::listen(
+                    CommandFinished::class,
+                    \Veeqtoh\PromptForge\Listeners\AfterMakeAgent::class
+                );
+            }
         }
     }
 }

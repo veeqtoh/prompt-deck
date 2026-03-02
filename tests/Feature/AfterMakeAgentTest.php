@@ -112,6 +112,22 @@ test('handle() converts PascalCase agent names to kebab-case prompts', function 
 // Edge cases
 // =====================================================================
 
+test('handle() skips when scaffold_on_make_agent config is false', function () {
+    config()->set('prompt-forge.scaffold_on_make_agent', false);
+
+    $input = Mockery::mock(\Symfony\Component\Console\Input\InputInterface::class);
+    $input->shouldNotReceive('getArgument');
+
+    $output = new BufferedOutput;
+
+    $event    = new CommandFinished('make:agent', $input, $output, 0);
+    $listener = new AfterMakeAgent;
+
+    $listener->handle($event);
+
+    expect($output->fetch())->not->toContain('PromptForge');
+});
+
 test('handle() skips when input returns null for name argument', function () {
     $input = Mockery::mock(\Symfony\Component\Console\Input\InputInterface::class);
     $input->shouldReceive('getArgument')->with('name')->andReturn(null);
