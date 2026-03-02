@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Veeqtoh\PromptForge\Providers;
 
+use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Veeqtoh\PromptForge\Console\Commands\ActivatePromptCommand;
 use Veeqtoh\PromptForge\Console\Commands\ListPromptsCommand;
@@ -97,6 +99,12 @@ class PromptForgeProvider extends ServiceProvider
     {
         if (class_exists(\Laravel\Ai\AiServiceProvider::class)) {
             $this->app->singleton(\Veeqtoh\PromptForge\Ai\TrackPromptMiddleware::class);
+
+            // Auto-scaffold a prompt when `make:agent` finishes successfully.
+            Event::listen(
+                CommandFinished::class,
+                \Veeqtoh\PromptForge\Listeners\AfterMakeAgent::class
+            );
         }
     }
 }
