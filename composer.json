@@ -1,8 +1,8 @@
 {
-    "name": "veeqtoh/prompt-forge",
+    "name": "veeqtoh/prompt-deck",
     "description": "A Laravel package that adds versioned, file-based prompt management with variable interpolation, performance tracking, A/B testing, and optional seamless integration with the Laravel AI SDK.",
     "type": "library",
-    "homepage": "https://github.com/veeqtoh/prompt-forge",
+    "homepage": "https://github.com/veeqtoh/prompt-deck",
     "license": "MIT",
     "authors": [
         {
@@ -42,21 +42,21 @@
     },
     "autoload": {
         "psr-4": {
-            "Veeqtoh\\PromptForge\\": "src/"
+            "Veeqtoh\\PromptDeck\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Veeqtoh\\PromptForge\\Tests\\": "tests/"
+            "Veeqtoh\\PromptDeck\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Veeqtoh\\PromptForge\\Providers\\PromptForgeProvider"
+                "Veeqtoh\\PromptDeck\\Providers\\PROMPTDECKProvider"
             ],
             "aliases": {
-                "PromptForge": "Veeqtoh\\PromptForge\\Facades\\PromptForge"
+                "PROMPTDECK": "Veeqtoh\\PromptDeck\\Facades\\PROMPTDECK"
             }
         }
     },

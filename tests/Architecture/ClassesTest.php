@@ -3,12 +3,12 @@
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
 
-test('PromptForge provider class extends base Laravel service provider class')
-    ->expect('Veeqtoh\PromptForge\Providers\PromptForgeProvider')
+test('PROMPTDECK provider class extends base Laravel service provider class')
+    ->expect('Veeqtoh\PromptDeck\Providers\PROMPTDECKProvider')
     ->classes()
     ->toExtend(ServiceProvider::class);
 
-test('PromptForge facade class extends base Laravel facade class')
-    ->expect('Veeqtoh\PromptForge\Facades\PromptForge')
+test('PROMPTDECK facade class extends base Laravel facade class')
+    ->expect('Veeqtoh\PromptDeck\Facades\PROMPTDECK')
     ->classes()
     ->toExtend(Facade::class);

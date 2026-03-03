@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Veeqtoh\PromptForge\Concerns\HasPromptTemplate;
-use Veeqtoh\PromptForge\PromptManager;
-use Veeqtoh\PromptForge\PromptTemplate;
+use Veeqtoh\PromptDeck\Concerns\HasPromptTemplate;
+use Veeqtoh\PromptDeck\PromptManager;
+use Veeqtoh\PromptDeck\PromptTemplate;
 
 // =====================================================================
 // Helper: anonymous agent class using the trait

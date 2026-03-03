@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Ai;
+namespace Veeqtoh\PromptDeck\Ai;
 
 use Closure;
-use Veeqtoh\PromptForge\PromptManager;
+use Veeqtoh\PromptDeck\PromptManager;
 
 /**
  * Laravel AI SDK agent middleware that automatically tracks
- * prompt executions through PromptForge's tracking system.
+ * prompt executions through PROMPTDECK's tracking system.
  *
  * Add this middleware to any agent that uses HasPromptTemplate
  * to enable automatic performance tracking (tokens, latency, model, etc.).
@@ -27,7 +27,7 @@ use Veeqtoh\PromptForge\PromptManager;
  *
  * Requires:
  *   - laravel/ai package
- *   - PromptForge tracking enabled in config
+ *   - PROMPTDECK tracking enabled in config
  *   - The agent to use the HasPromptTemplate trait
  *
  * @see https://laravel.com/docs/ai-sdk#middleware
@@ -56,7 +56,7 @@ class TrackPromptMiddleware
     }
 
     /**
-     * Record the prompt execution via PromptForge's tracking system.
+     * Record the prompt execution via PROMPTDECK's tracking system.
      */
     protected function trackExecution(mixed $prompt, mixed $response, int $startTime): void
     {

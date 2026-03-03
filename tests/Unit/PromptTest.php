@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Veeqtoh\PromptForge\PromptTemplate;
+use Veeqtoh\PromptDeck\PromptTemplate;
 
 // =====================================================================
 // Accessor methods

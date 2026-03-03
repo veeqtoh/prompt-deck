@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Providers;
+namespace Veeqtoh\PromptDeck\Providers;
 
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Veeqtoh\PromptForge\Console\Commands\ActivatePromptCommand;
-use Veeqtoh\PromptForge\Console\Commands\ListPromptsCommand;
-use Veeqtoh\PromptForge\Console\Commands\MakePromptCommand;
-use Veeqtoh\PromptForge\Console\Commands\PromptDiffCommand;
-use Veeqtoh\PromptForge\Console\Commands\TestPromptCommand;
-use Veeqtoh\PromptForge\PromptManager;
+use Veeqtoh\PromptDeck\Console\Commands\ActivatePromptCommand;
+use Veeqtoh\PromptDeck\Console\Commands\ListPromptsCommand;
+use Veeqtoh\PromptDeck\Console\Commands\MakePromptCommand;
+use Veeqtoh\PromptDeck\Console\Commands\PromptDiffCommand;
+use Veeqtoh\PromptDeck\Console\Commands\TestPromptCommand;
+use Veeqtoh\PromptDeck\PromptManager;
 
-class PromptForgeProvider extends ServiceProvider
+class PROMPTDECKProvider extends ServiceProvider
 {
     /**
      * Bootstrap the application services.
@@ -35,27 +35,27 @@ class PromptForgeProvider extends ServiceProvider
     }
 
     /**
-     * Setup the configuration for PromptForge.
+     * Setup the configuration for PROMPTDECK.
      */
     protected function configure(): void
     {
         // Merge config.
         $this->mergeConfigFrom(
-            __DIR__.'/../../config/prompt-forge.php', 'prompt-forge'
+            __DIR__.'/../../config/prompt-deck.php', 'prompt-deck'
         );
 
         // Register the main manager as a singleton.
         $this->app->singleton(PromptManager::class, function ($app) {
             return new PromptManager(
-                config('prompt-forge.path'),
-                config('prompt-forge.extension'),
-                $app['cache']->store(config('prompt-forge.cache.store')),
+                config('prompt-deck.path'),
+                config('prompt-deck.extension'),
+                $app['cache']->store(config('prompt-deck.cache.store')),
                 $app['config']
             );
         });
 
         // Register a facade alias.
-        $this->app->alias(PromptManager::class, 'prompt-forge');
+        $this->app->alias(PromptManager::class, 'prompt-deck');
     }
 
     /**
@@ -67,17 +67,17 @@ class PromptForgeProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../database/migrations/' => database_path('migrations'),
-            ], 'prompt-forge-migrations');
+            ], 'prompt-deck-migrations');
 
             // Publish config.
             $this->publishes([
-                __DIR__.'/../../config/prompt-forge.php' => config_path('prompt-forge.php'),
-            ], 'prompt-forge-config');
+                __DIR__.'/../../config/prompt-deck.php' => config_path('prompt-deck.php'),
+            ], 'prompt-deck-config');
         }
     }
 
     /**
-     * Register Artisan commands for PromptForge.
+     * Register Artisan commands for PROMPTDECK.
      */
     protected function registerArtisanCommands(): void
     {
@@ -98,13 +98,13 @@ class PromptForgeProvider extends ServiceProvider
     protected function registerAiSdkIntegration(): void
     {
         if (class_exists(\Laravel\Ai\AiServiceProvider::class)) {
-            $this->app->singleton(\Veeqtoh\PromptForge\Ai\TrackPromptMiddleware::class);
+            $this->app->singleton(\Veeqtoh\PromptDeck\Ai\TrackPromptMiddleware::class);
 
             // Auto-scaffold a prompt when `make:agent` finishes successfully.
-            if (config('prompt-forge.scaffold_on_make_agent', true)) {
+            if (config('prompt-deck.scaffold_on_make_agent', true)) {
                 Event::listen(
                     CommandFinished::class,
-                    \Veeqtoh\PromptForge\Listeners\AfterMakeAgent::class
+                    \Veeqtoh\PromptDeck\Listeners\AfterMakeAgent::class
                 );
             }
         }

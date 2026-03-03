@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Tests;
+namespace Veeqtoh\PromptDeck\Tests;
 
 use Orchestra\Testbench\TestCase as BaseTestCase;
-use Veeqtoh\PromptForge\Providers\PromptForgeProvider;
+use Veeqtoh\PromptDeck\Providers\PROMPTDECKProvider;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -15,13 +15,13 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        $this->tempDir = sys_get_temp_dir().'/prompt-forge-tests-'.uniqid();
+        $this->tempDir = sys_get_temp_dir().'/prompt-deck-tests-'.uniqid();
         mkdir($this->tempDir, 0755, true);
 
-        $this->app['config']->set('prompt-forge.path', $this->tempDir);
-        $this->app['config']->set('prompt-forge.extension', 'md');
-        $this->app['config']->set('prompt-forge.cache.enabled', false);
-        $this->app['config']->set('prompt-forge.tracking.enabled', false);
+        $this->app['config']->set('prompt-deck.path', $this->tempDir);
+        $this->app['config']->set('prompt-deck.extension', 'md');
+        $this->app['config']->set('prompt-deck.cache.enabled', false);
+        $this->app['config']->set('prompt-deck.tracking.enabled', false);
     }
 
     protected function tearDown(): void
@@ -34,7 +34,7 @@ abstract class TestCase extends BaseTestCase
     protected function getPackageProviders($app): array
     {
         return [
-            PromptForgeProvider::class,
+            PROMPTDECKProvider::class,
         ];
     }
 

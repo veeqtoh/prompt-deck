@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Models;
+namespace Veeqtoh\PromptDeck\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -29,8 +29,8 @@ class PromptVersion extends Model
     /**
      * Create a new factory instance for the model.
      */
-    protected static function newFactory(): \Veeqtoh\PromptForge\Database\Factories\PromptVersionFactory
+    protected static function newFactory(): \Veeqtoh\PromptDeck\Database\Factories\PromptVersionFactory
     {
-        return \Veeqtoh\PromptForge\Database\Factories\PromptVersionFactory::new();
+        return \Veeqtoh\PromptDeck\Database\Factories\PromptVersionFactory::new();
     }
 }

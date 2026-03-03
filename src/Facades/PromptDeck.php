@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Facades;
+namespace Veeqtoh\PromptDeck\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @method static \Veeqtoh\PromptForge\PromptTemplate get(string $name, ?int $version = null)
- * @method static \Veeqtoh\PromptForge\PromptTemplate active(string $name)
+ * @method static \Veeqtoh\PromptDeck\PromptTemplate get(string $name, ?int $version = null)
+ * @method static \Veeqtoh\PromptDeck\PromptTemplate active(string $name)
  * @method static array versions(string $name)
  * @method static bool activate(string $name, int $version)
  * @method static void track(string $promptName, int $version, array $data)
  *
- * @see \Veeqtoh\PromptForge\PromptManager
+ * @see \Veeqtoh\PromptDeck\PromptManager
  */
-class PromptForge extends Facade
+class PROMPTDECK extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
-        return 'prompt-forge';
+        return 'prompt-deck';
     }
 }

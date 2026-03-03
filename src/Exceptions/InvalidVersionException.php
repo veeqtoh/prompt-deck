@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Exceptions;
+namespace Veeqtoh\PromptDeck\Exceptions;
 
-class InvalidVersionException extends PromptForgeException
+class InvalidVersionException extends PROMPTDECKException
 {
     /**
      * * Create an exception for a non-existent version.

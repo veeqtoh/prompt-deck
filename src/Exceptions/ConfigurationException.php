@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Exceptions;
+namespace Veeqtoh\PromptDeck\Exceptions;
 
-class ConfigurationException extends PromptForgeException
+class ConfigurationException extends PROMPTDECKException
 {
     /**
      * Create a new exception for an invalid prompts path configuration.

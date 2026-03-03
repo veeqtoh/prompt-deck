@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Exceptions;
+namespace Veeqtoh\PromptDeck\Exceptions;
 
-class PromptRenderingException extends PromptForgeException
+class PromptRenderingException extends PROMPTDECKException
 {
     /**
      * Create a new exception for a missing variable during prompt rendering.

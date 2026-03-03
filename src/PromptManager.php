@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge;
+namespace Veeqtoh\PromptDeck;
 
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\DB;
-use Veeqtoh\PromptForge\Exceptions\InvalidVersionException;
-use Veeqtoh\PromptForge\Exceptions\PromptNotFoundException;
+use Veeqtoh\PromptDeck\Exceptions\InvalidVersionException;
+use Veeqtoh\PromptDeck\Exceptions\PromptNotFoundException;
 
 class PromptManager
 {
@@ -32,23 +32,23 @@ class PromptManager
         $this->extension      = ltrim($extension, '.');
         $this->cache          = $cache;
         $this->config         = $config;
-        $this->trackingConfig = $config->get('prompt-forge.tracking');
+        $this->trackingConfig = $config->get('prompt-deck.tracking');
     }
 
     /**
      * Get a prompt instance by name and optional version.
      * If version is not provided, the active version will be used.
      *
-     *   PromptForge::get('order-summary')        // active version.
-     *   PromptForge::get('order-summary', 2)     // specific version.
+     *   PROMPTDECK::get('order-summary')        // active version.
+     *   PROMPTDECK::get('order-summary', 2)     // specific version.
      */
     public function get(string $name, ?int $version = null): PromptTemplate
     {
         $version ??= $this->getActiveVersion($name);
-        $cacheKey = $this->config->get('prompt-forge.cache.prefix', 'prompt-forge:')."{$name}.v{$version}";
+        $cacheKey = $this->config->get('prompt-deck.cache.prefix', 'prompt-deck:')."{$name}.v{$version}";
 
         // Attempt to load from cache.
-        if ($this->config->get('prompt-forge.cache.enabled')) {
+        if ($this->config->get('prompt-deck.cache.enabled')) {
             $cached = $this->cache->get($cacheKey);
 
             if ($cached) {
@@ -65,8 +65,8 @@ class PromptManager
         $promptData = $this->loadFromFiles($name, $version);
 
         // Cache if enabled.
-        if ($this->config->get('prompt-forge.cache.enabled')) {
-            $this->cache->put($cacheKey, $promptData, now()->addSeconds($this->config->get('prompt-forge.cache.ttl')));
+        if ($this->config->get('prompt-deck.cache.enabled')) {
+            $this->cache->put($cacheKey, $promptData, now()->addSeconds($this->config->get('prompt-deck.cache.ttl')));
         }
 
         return new PromptTemplate(

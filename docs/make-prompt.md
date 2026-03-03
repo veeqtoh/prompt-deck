@@ -1,0 +1,363 @@
+# Creating Prompts
+
+- [Introduction](#introduction)
+- [Generating Prompts](#generating-prompts)
+    - [Basic Usage](#basic-usage)
+    - [Interactive Mode](#interactive-mode)
+- [Command Signature](#command-signature)
+    - [Arguments](#arguments)
+    - [Options](#options)
+- [Prompt Structure](#prompt-structure)
+    - [Directory Layout](#directory-layout)
+    - [Metadata](#metadata)
+- [Roles](#roles)
+    - [System Role (Default)](#system-role-default)
+    - [User Role](#user-role)
+    - [Extra Roles](#extra-roles)
+- [Versioning](#versioning)
+    - [Auto-Increment](#auto-increment)
+    - [Overwriting](#overwriting)
+    - [Force Mode](#force-mode)
+- [Stubs](#stubs)
+    - [Default Stubs](#default-stubs)
+    - [Custom Stubs](#custom-stubs)
+    - [Using a One-Off Template](#using-a-one-off-template)
+- [Name Normalisation](#name-normalisation)
+- [Configuration](#configuration)
+
+<a name="introduction"></a>
+## Introduction
+
+Prompt Deck provides an Artisan generator command that scaffolds versioned, role-based prompt structures for your AI agents. The command follows Laravel conventions and supports interactive workflows, automatic versioning, customisable stubs, and rich metadata — everything you need to manage prompts as first-class project assets.
+
+<a name="generating-prompts"></a>
+## Generating Prompts
+
+<a name="basic-usage"></a>
+### Basic Usage
+
+To create a new prompt, use the `make:prompt` Artisan command:
+
+```bash
+php artisan make:prompt order-summary
+```
+
+This generates the following structure inside your configured prompts directory (default `resources/prompts`):
+
+```
+resources/prompts/
+└── order-summary/
+    ├── v1/
+    │   └── system.md
+    └── metadata.json
+```
+
+A **system prompt** file is always created. A `metadata.json` file is placed at the prompt root to record the prompt's name, description, roles, and creation timestamp.
+
+<a name="interactive-mode"></a>
+### Interactive Mode
+
+Run the command without any arguments to enter a fully interactive flow:
+
+```bash
+php artisan make:prompt
+```
+
+You will be guided through a series of questions:
+
+1. **What should the prompt be named?** — Provide a name (automatically converted to kebab-case).
+2. **Briefly describe this prompt (press Enter to skip)** — An optional description stored in `metadata.json`.
+3. **Would you also like to create a user prompt file?** — Confirm to scaffold a `user.md` alongside `system.md`.
+4. **Would you like to create prompt files for additional roles?** — Confirm, then enter comma-separated role names (e.g. `assistant, developer`).
+
+> **Note**  
+> The interactive description and user-prompt questions are only asked when the name argument is omitted. When passing a name directly, use the `--desc`, `--user`, and `--interactive` options instead.
+
+<a name="command-signature"></a>
+## Command Signature
+
+```
+make:prompt {name?} {--from=} {--desc=} {--u|user} {--role=*} {--i|interactive} {--f|force}
+```
+
+<a name="arguments"></a>
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `name`   | No       | The name of the prompt. Omit to be prompted interactively. Automatically normalised to kebab-case. |
+
+<a name="options"></a>
+### Options
+
+| Option               | Shorthand | Description |
+|----------------------|-----------|-------------|
+| `--from=`            |           | Path to a custom stub file to use as the user prompt template. |
+| `--desc=`            |           | A short description of what this prompt does. Stored in `metadata.json`. |
+| `--user`             | `-u`      | Also create a `user` prompt file alongside the default `system` prompt. |
+| `--role=*`           |           | One or more additional roles to scaffold prompt files for. Repeatable. |
+| `--interactive`      | `-i`      | Interactively choose which additional roles to create. |
+| `--force`            | `-f`      | Overwrite an existing prompt's latest version without confirmation. |
+
+<a name="prompt-structure"></a>
+## Prompt Structure
+
+<a name="directory-layout"></a>
+### Directory Layout
+
+Every prompt is organised into a named directory containing versioned sub-directories and a `metadata.json` file:
+
+```
+resources/prompts/
+└── <prompt-name>/
+    ├── v1/
+    │   ├── system.md          # Always created
+    │   ├── user.md            # Created with --user or -u
+    │   ├── assistant.md       # Created with --role=assistant
+    │   └── developer.md       # Created with --role=developer
+    ├── v2/
+    │   └── ...
+    └── metadata.json
+```
+
+The file extension is controlled by the `prompt-deck.extension` configuration value (default: `md`). For example, setting it to `txt` produces `system.txt`, `user.txt`, etc.
+
+<a name="metadata"></a>
+### Metadata
+
+A `metadata.json` file is written to the prompt root directory each time the command runs. It captures:
+
+```json
+{
+    "name": "order-summary",
+    "description": "Summarises customer orders for the support agent.",
+    "roles": ["system", "user", "assistant"],
+    "variables": [],
+    "created_at": "2025-01-15T10:30:00+00:00"
+}
+```
+
+| Field         | Description |
+|---------------|-------------|
+| `name`        | The kebab-case prompt name. |
+| `description` | A human-readable summary. Populated via `--desc=` or the interactive flow. |
+| `roles`       | An ordered list of every role that was scaffolded. Always starts with `system`. |
+| `variables`   | Reserved for future use (template variable extraction). |
+| `created_at`  | ISO 8601 timestamp of creation. |
+
+<a name="roles"></a>
+## Roles
+
+<a name="system-role-default"></a>
+### System Role (Default)
+
+A `system.md` file is **always** created. This is the primary prompt file and represents the system-level instructions for your AI agent. No flag is needed:
+
+```bash
+php artisan make:prompt code-reviewer
+# Creates: resources/prompts/code-reviewer/v1/system.md
+```
+
+<a name="user-role"></a>
+### User Role
+
+To also scaffold a user prompt file, pass the `--user` (or `-u`) flag:
+
+```bash
+php artisan make:prompt code-reviewer --user
+# Creates: system.md + user.md
+```
+
+In the interactive flow (name omitted), you are asked whether to create a user prompt via a confirmation question.
+
+<a name="extra-roles"></a>
+### Extra Roles
+
+You can scaffold prompt files for any additional roles using the `--role` option. It is repeatable:
+
+```bash
+php artisan make:prompt code-reviewer --role=assistant --role=developer
+# Creates: system.md + assistant.md + developer.md
+```
+
+Role names are normalised to kebab-case (e.g. `ToolCall` becomes `tool-call.md`). Each role file uses the `role-prompt.stub` template with the `{{ $role }}` placeholder replaced by the actual role name.
+
+To choose roles interactively **without** omitting the name argument, pass `--interactive` (or `-i`):
+
+```bash
+php artisan make:prompt code-reviewer -i
+# Prompts: "Would you like to create prompt files for additional roles?"
+# Then:    "Which roles? (comma-separated, e.g. assistant,developer)"
+```
+
+> **Note**  
+> When `--role` values are provided explicitly, the interactive role prompt is skipped — explicit values always take precedence.
+
+All scaffolded roles (including `system` and optionally `user`) are recorded in the `roles` array of `metadata.json`.
+
+<a name="versioning"></a>
+## Versioning
+
+Prompt Deck uses directory-based versioning. Each version lives in its own sub-directory (`v1/`, `v2/`, etc.) inside the prompt folder.
+
+<a name="auto-increment"></a>
+### Auto-Increment
+
+When you run the command for a prompt that already has one or more versions, you are presented with a choice:
+
+```bash
+php artisan make:prompt code-reviewer
+# ⚠ Prompt [code-reviewer] already exists at version 2.
+# What would you like to do?
+#   [version]   Create a new version (v3)
+#   [overwrite]  Overwrite version 2
+#   [cancel]     Cancel
+```
+
+Selecting **"Create a new version"** auto-increments the version number and creates a fresh directory (e.g. `v3/`). Existing versions remain untouched.
+
+<a name="overwriting"></a>
+### Overwriting
+
+Selecting **"Overwrite"** replaces the files in the latest version directory. The version number stays the same, but the prompt files are regenerated from the current stubs.
+
+Selecting **"Cancel"** aborts the command without making any changes.
+
+<a name="force-mode"></a>
+### Force Mode
+
+In non-interactive environments (CI pipelines, scripts), use `--force` (or `-f`) to overwrite the latest version without any prompts:
+
+```bash
+php artisan make:prompt code-reviewer --force
+```
+
+If version 2 exists, `--force` overwrites `v2/` directly. It will **never** create a new version automatically — its purpose is to regenerate the latest version.
+
+For brand-new prompts, `--force` has no special effect; `v1/` is created as normal.
+
+<a name="stubs"></a>
+## Stubs
+
+The content of generated prompt files comes from **stub templates**. Three stubs ship with the package:
+
+<a name="default-stubs"></a>
+### Default Stubs
+
+| Stub                    | Used For           | Placeholders      |
+|-------------------------|--------------------|--------------------|
+| `system-prompt.stub`    | `system.md`        | `{{ $tone }}`      |
+| `user-prompt.stub`      | `user.md`          | `{{ $name }}`, `{{ $input }}` |
+| `role-prompt.stub`      | Extra role files   | `{{ $role }}` (auto-replaced at generation time) |
+
+<a name="custom-stubs"></a>
+### Custom Stubs
+
+To customise the stubs for your project, create a `stubs/prompt-deck/` directory at your application root and place your own versions of any stub file there:
+
+```
+your-app/
+└── stubs/
+    └── prompt-deck/
+        ├── system-prompt.stub
+        ├── user-prompt.stub
+        └── role-prompt.stub
+```
+
+Published stubs **always take precedence** over the package defaults. You only need to publish the stubs you want to override — any missing stubs fall back to the package defaults.
+
+<a name="using-a-one-off-template"></a>
+### Using a One-Off Template
+
+To use a specific file as the user prompt template for a single invocation, pass `--from`:
+
+```bash
+php artisan make:prompt code-reviewer --user --from=path/to/my-template.md
+```
+
+The `--from` option only affects the user prompt file. The system prompt always uses its own stub.
+
+<a name="name-normalisation"></a>
+## Name Normalisation
+
+All prompt names are automatically converted to **kebab-case** for consistent directory naming. The conversion handles a variety of input formats:
+
+| Input              | Result            |
+|--------------------|-------------------|
+| `MyPrompt`         | `my-prompt`       |
+| `orderSummary`     | `order-summary`   |
+| `snake_case_name`  | `snake-case-name` |
+| `LOUD_PROMPT`      | `loud-prompt`     |
+| `My_Cool Prompt`   | `my-cool-prompt`  |
+| `already-kebab`    | `already-kebab`   |
+
+This normalisation applies to both the prompt name and any extra role names provided via `--role`.
+
+<a name="configuration"></a>
+## Configuration
+
+The command respects the following values from `config/prompt-deck.php`:
+
+| Key                       | Default                  | Description |
+|---------------------------|--------------------------|-------------|
+| `prompt-deck.path`       | `resource_path('prompts')` | Base directory where prompt structures are created. |
+| `prompt-deck.extension`  | `md`                     | File extension for generated prompt files. |
+
+Publish the configuration file with:
+
+```bash
+php artisan vendor:publish --tag=prompt-deck-config
+```
+
+<a name="examples"></a>
+## Examples
+
+**Create a minimal prompt (system only):**
+
+```bash
+php artisan make:prompt email-drafter
+```
+
+**Create a prompt with system + user files:**
+
+```bash
+php artisan make:prompt email-drafter --user
+```
+
+**Create a prompt with system + multiple roles:**
+
+```bash
+php artisan make:prompt email-drafter --role=assistant --role=reviewer
+```
+
+**Create a prompt with everything — user, roles, and a description:**
+
+```bash
+php artisan make:prompt email-drafter -u --role=assistant --desc="Drafts professional emails"
+```
+
+**Fully interactive flow:**
+
+```bash
+php artisan make:prompt
+```
+
+**Force-overwrite the latest version in CI:**
+
+```bash
+php artisan make:prompt email-drafter --force
+```
+
+**Use a custom template for the user prompt:**
+
+```bash
+php artisan make:prompt email-drafter --user --from=stubs/my-user.stub
+```
+
+### Success Output
+
+After successful creation, the command outputs a confirmation message:
+
+```
+Version 1 of the [email-drafter] prompt has been created successfully with the following roles: system, user, assistant.
+```

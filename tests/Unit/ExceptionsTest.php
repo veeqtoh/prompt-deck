@@ -2,42 +2,42 @@
 
 declare(strict_types=1);
 
-use Veeqtoh\PromptForge\Exceptions\ConfigurationException;
-use Veeqtoh\PromptForge\Exceptions\InvalidVersionException;
-use Veeqtoh\PromptForge\Exceptions\PromptForgeException;
-use Veeqtoh\PromptForge\Exceptions\PromptNotFoundException;
-use Veeqtoh\PromptForge\Exceptions\PromptRenderingException;
+use Veeqtoh\PromptDeck\Exceptions\ConfigurationException;
+use Veeqtoh\PromptDeck\Exceptions\InvalidVersionException;
+use Veeqtoh\PromptDeck\Exceptions\PROMPTDECKException;
+use Veeqtoh\PromptDeck\Exceptions\PromptNotFoundException;
+use Veeqtoh\PromptDeck\Exceptions\PromptRenderingException;
 
 // --- Hierarchy ---
 
-test('PromptForgeException extends base Exception', function () {
-    expect(PromptForgeException::class)
+test('PROMPTDECKException extends base Exception', function () {
+    expect(PROMPTDECKException::class)
         ->toExtend(\Exception::class);
 });
 
-test('ConfigurationException extends PromptForgeException', function () {
+test('ConfigurationException extends PROMPTDECKException', function () {
     $e = ConfigurationException::invalidPath('/some/path');
 
-    expect($e)->toBeInstanceOf(PromptForgeException::class)
+    expect($e)->toBeInstanceOf(PROMPTDECKException::class)
         ->and($e)->toBeInstanceOf(\Exception::class);
 });
 
-test('InvalidVersionException extends PromptForgeException', function () {
+test('InvalidVersionException extends PROMPTDECKException', function () {
     $e = InvalidVersionException::forPrompt('test', 1);
 
-    expect($e)->toBeInstanceOf(PromptForgeException::class);
+    expect($e)->toBeInstanceOf(PROMPTDECKException::class);
 });
 
-test('PromptNotFoundException extends PromptForgeException', function () {
+test('PromptNotFoundException extends PROMPTDECKException', function () {
     $e = PromptNotFoundException::named('test');
 
-    expect($e)->toBeInstanceOf(PromptForgeException::class);
+    expect($e)->toBeInstanceOf(PROMPTDECKException::class);
 });
 
-test('PromptRenderingException extends PromptForgeException', function () {
+test('PromptRenderingException extends PROMPTDECKException', function () {
     $e = PromptRenderingException::dueToMissingVariable('name', 'greeting');
 
-    expect($e)->toBeInstanceOf(PromptForgeException::class);
+    expect($e)->toBeInstanceOf(PROMPTDECKException::class);
 });
 
 // --- Message format ---

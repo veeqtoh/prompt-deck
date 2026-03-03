@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Console\Commands;
+namespace Veeqtoh\PromptDeck\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
@@ -39,7 +39,7 @@ class MakePromptCommand extends Command
         }
 
         $name     = $this->toKebabCase($rawName);
-        $basePath = config('prompt-forge.path');
+        $basePath = config('prompt-deck.path');
 
         // Resolve description.
         $description = $this->option('desc')
@@ -64,7 +64,7 @@ class MakePromptCommand extends Command
         }
 
         // Determine file extension
-        $extension = config('prompt-forge.extension', 'md');
+        $extension = config('prompt-deck.extension', 'md');
 
         // Create system prompt file (always created by default).
         $systemFile = "{$versionPath}/system.{$extension}";
@@ -250,7 +250,7 @@ class MakePromptCommand extends Command
      */
     protected function resolveStubPath(string $stub): string
     {
-        $publishedPath = $this->laravel->basePath("stubs/prompt-forge/{$stub}");
+        $publishedPath = $this->laravel->basePath("stubs/prompt-deck/{$stub}");
 
         if ($this->files->exists($publishedPath)) {
             return $publishedPath;

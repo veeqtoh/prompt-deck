@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Console\Commands;
+namespace Veeqtoh\PromptDeck\Console\Commands;
 
 use Illuminate\Console\Command;
-use Veeqtoh\PromptForge\PromptManager;
+use Veeqtoh\PromptDeck\PromptManager;
 
 class TestPromptCommand extends Command
 {

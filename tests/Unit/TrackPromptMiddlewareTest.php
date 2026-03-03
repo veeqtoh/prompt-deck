@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Veeqtoh\PromptForge\Ai\TrackPromptMiddleware;
-use Veeqtoh\PromptForge\PromptManager;
-use Veeqtoh\PromptForge\PromptTemplate;
+use Veeqtoh\PromptDeck\Ai\TrackPromptMiddleware;
+use Veeqtoh\PromptDeck\PromptManager;
+use Veeqtoh\PromptDeck\PromptTemplate;
 
 // =====================================================================
 // Middleware instantiation

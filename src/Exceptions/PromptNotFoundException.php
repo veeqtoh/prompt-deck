@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Exceptions;
+namespace Veeqtoh\PromptDeck\Exceptions;
 
-class PromptNotFoundException extends PromptForgeException
+class PromptNotFoundException extends PROMPTDECKException
 {
     /**
      * Create a new exception instance for a missing prompt.

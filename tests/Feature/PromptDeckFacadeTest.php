@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-use Veeqtoh\PromptForge\Facades\PromptForge;
-use Veeqtoh\PromptForge\PromptManager;
-use Veeqtoh\PromptForge\PromptTemplate;
+use Veeqtoh\PromptDeck\Facades\PROMPTDECK;
+use Veeqtoh\PromptDeck\PromptManager;
+use Veeqtoh\PromptDeck\PromptTemplate;
 
-test('facade accessor returns prompt-forge', function () {
+test('facade accessor returns prompt-deck', function () {
     // Resolve via facade accessor.
-    $resolved = PromptForge::getFacadeRoot();
+    $resolved = PROMPTDECK::getFacadeRoot();
 
     expect($resolved)->toBeInstanceOf(PromptManager::class);
 });
 
-test('PromptForge::get() loads a prompt by name and version', function () {
+test('PROMPTDECK::get() loads a prompt by name and version', function () {
     $this->createPromptFixture('facade-test', 1, 'system content', 'user content');
 
-    $prompt = PromptForge::get('facade-test', 1);
+    $prompt = PROMPTDECK::get('facade-test', 1);
 
     expect($prompt)->toBeInstanceOf(PromptTemplate::class)
         ->and($prompt->name())->toBe('facade-test')
@@ -25,42 +25,42 @@ test('PromptForge::get() loads a prompt by name and version', function () {
         ->and($prompt->user())->toBe('user content');
 });
 
-test('PromptForge::get() without version returns the active version', function () {
+test('PROMPTDECK::get() without version returns the active version', function () {
     $this->createPromptFixture('facade-active', 1, 'sys', 'usr');
     $this->createPromptFixture('facade-active', 2, 'sys v2', 'usr v2', null, ['active_version' => 2]);
 
-    $prompt = PromptForge::get('facade-active');
+    $prompt = PROMPTDECK::get('facade-active');
 
     expect($prompt)->toBeInstanceOf(PromptTemplate::class)
         ->and($prompt->version())->toBe(2);
 });
 
-test('PromptForge::active() proxies to PromptManager::active()', function () {
+test('PROMPTDECK::active() proxies to PromptManager::active()', function () {
     $this->createPromptFixture('facade-active-method', 1, 'sys', 'usr');
     $this->createPromptFixture('facade-active-method', 2, 'sys v2', 'usr v2', null, ['active_version' => 2]);
 
-    $prompt = PromptForge::active('facade-active-method');
+    $prompt = PROMPTDECK::active('facade-active-method');
 
     expect($prompt)->toBeInstanceOf(PromptTemplate::class)
         ->and($prompt->version())->toBe(2);
 });
 
-test('PromptForge::versions() proxies to PromptManager::versions()', function () {
+test('PROMPTDECK::versions() proxies to PromptManager::versions()', function () {
     $this->createPromptFixture('facade-versions', 1, 'sys', 'usr');
     $this->createPromptFixture('facade-versions', 2, 'sys', 'usr');
 
-    $versions = PromptForge::versions('facade-versions');
+    $versions = PROMPTDECK::versions('facade-versions');
 
     expect($versions)->toHaveCount(2)
         ->and($versions[0]['version'])->toBe(1)
         ->and($versions[1]['version'])->toBe(2);
 });
 
-test('PromptForge::activate() proxies to PromptManager::activate()', function () {
+test('PROMPTDECK::activate() proxies to PromptManager::activate()', function () {
     $this->createPromptFixture('facade-activate', 1, 'sys', 'usr');
     $this->createPromptFixture('facade-activate', 2, 'sys', 'usr');
 
-    $result = PromptForge::activate('facade-activate', 2);
+    $result = PROMPTDECK::activate('facade-activate', 2);
 
     expect($result)->toBeTrue();
 

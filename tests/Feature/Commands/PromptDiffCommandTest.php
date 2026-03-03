@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Veeqtoh\PromptForge\Exceptions\PromptNotFoundException;
+use Veeqtoh\PromptDeck\Exceptions\PromptNotFoundException;
 
 // ──────────────────────────────────────────────────────────────
 // Validation: missing version options
@@ -186,7 +186,7 @@ test('prompt:diff shows added and removed lines for multi-line changes', functio
 // ──────────────────────────────────────────────────────────────
 
 test('prompt:diff respects configured file extension', function () {
-    $this->app['config']->set('prompt-forge.extension', 'txt');
+    $this->app['config']->set('prompt-deck.extension', 'txt');
 
     // Create fixtures with .txt extension
     $this->createPromptFixture('diff-ext', 1, null, null, null, null, 'txt');

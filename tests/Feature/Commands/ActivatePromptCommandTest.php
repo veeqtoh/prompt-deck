@@ -16,12 +16,12 @@ test('prompt:activate activates version and outputs success message', function (
 
 test('prompt:activate returns failure when exception is thrown', function () {
     // We mock the PromptManager to throw an exception.
-    $mock = \Mockery::mock(\Veeqtoh\PromptForge\PromptManager::class);
+    $mock = \Mockery::mock(\Veeqtoh\PromptDeck\PromptManager::class);
     $mock->shouldReceive('activate')
         ->with('bad-prompt', 1)
         ->andThrow(new \Exception('Something went wrong'));
 
-    $this->app->instance(\Veeqtoh\PromptForge\PromptManager::class, $mock);
+    $this->app->instance(\Veeqtoh\PromptDeck\PromptManager::class, $mock);
 
     $this->artisan('prompt:activate', ['name' => 'bad-prompt', 'version' => 1])
         ->expectsOutput('Something went wrong')

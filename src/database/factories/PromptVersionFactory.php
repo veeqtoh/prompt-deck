@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Veeqtoh\PromptForge\Database\Factories;
+namespace Veeqtoh\PromptDeck\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Veeqtoh\PromptForge\Models\PromptVersion;
+use Veeqtoh\PromptDeck\Models\PromptVersion;
 
 class PromptVersionFactory extends Factory
 {
