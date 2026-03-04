@@ -1,0 +1,5 @@
+# User prompt for {{ $name }}
+
+Your task is to...
+
+User input: {{ $input }}

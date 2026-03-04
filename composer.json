@@ -1,0 +1,76 @@
+{
+    "name": "veeqtoh/prompt-deck",
+    "description": "A Laravel package that adds versioned, file-based prompt management with variable interpolation, performance tracking, A/B testing, and optional seamless integration with the Laravel AI SDK.",
+    "type": "library",
+    "homepage": "https://github.com/veeqtoh/prompt-deck",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Victor Ukam",
+            "email": "victorjohnukam@gmail.com"
+        }
+    ],
+    "keywords": [
+        "veeqtoh",
+        "victor-ukam",
+        "prompt-management",
+        "versioned-prompts",
+        "file-based-prompts",
+        "variable-interpolation",
+        "performance-tracking",
+        "ab-testing",
+        "laravel",
+        "laravel-package"
+    ],
+    "require": {
+        "php": "^8.2",
+        "sebastian/diff": "^7.0.0", 
+        "nesbot/carbon": "^3.0",
+        "illuminate/container": "^11.0|^12.0",
+        "illuminate/database": "^11.0|^12.0",
+        "illuminate/support": "^11.0|^12.0"
+    },
+    "require-dev": {
+        "mockery/mockery": "^1.0",
+        "orchestra/testbench": "^10.0",
+        "pestphp/pest": "^4.3",
+        "pestphp/pest-plugin-laravel": "^4.0",
+        "laravel/pint": "^1.27"
+    },
+    "suggest": {
+        "laravel/ai": "Enables deep integration with Laravel AI SDK agents (automatic instructions loading, prompt version tracking in conversations)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Veeqtoh\\PromptDeck\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Veeqtoh\\PromptDeck\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Veeqtoh\\PromptDeck\\Providers\\PromptDeckServiceProvider"
+            ],
+            "aliases": {
+                "PromptDeck": "Veeqtoh\\PromptDeck\\Facades\\PromptDeck"
+            }
+        }
+    },
+    "scripts": {
+        "test": [
+            "vendor/bin/pint --test",
+            "vendor/bin/pest"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

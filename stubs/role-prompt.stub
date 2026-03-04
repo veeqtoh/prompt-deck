@@ -1,0 +1,5 @@
+# {{ $role }} prompt
+
+You are acting in the {{ $role }} role.
+
+Your task is to...

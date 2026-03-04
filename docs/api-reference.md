@@ -1,0 +1,422 @@
+# API Reference
+
+- [PromptManager](#prompt-manager)
+- [PromptTemplate](#prompt-template)
+- [PromptDeck Facade](#promptdeck-facade)
+- [HasPromptTemplate Trait](#hasprompttemplate-trait)
+- [TrackPromptMiddleware](#trackpromptmiddleware)
+- [AfterMakeAgent Listener](#aftermakeagent-listener)
+- [Models](#models)
+    - [PromptVersion](#prompt-version)
+    - [PromptExecution](#prompt-execution)
+- [Exceptions](#exceptions)
+    - [PromptDeckException](#promptdeckexception)
+    - [PromptNotFoundException](#promptnotfoundexception)
+    - [InvalidVersionException](#invalidversionexception)
+    - [ConfigurationException](#configurationexception)
+    - [PromptRenderingException](#promptrenderingexception)
+
+---
+
+<a name="prompt-manager"></a>
+## PromptManager
+
+`Veeqtoh\PromptDeck\PromptManager`
+
+The core service class responsible for loading, caching, versioning, and tracking prompts. Registered as a singleton in the service container.
+
+### Constructor
+
+```php
+public function __construct(
+    string $basePath,
+    string $extension,
+    Cache $cache,
+    Config $config
+)
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `$basePath` | `string` | Base directory where prompt files are stored. |
+| `$extension` | `string` | File extension for prompt templates (e.g. `md`). |
+| `$cache` | `Illuminate\Contracts\Cache\Repository` | Cache store instance. |
+| `$config` | `Illuminate\Contracts\Config\Repository` | Configuration repository. |
+
+### Methods
+
+#### `get(string $name, ?int $version = null): PromptTemplate`
+
+Load a prompt by name and optional version. If version is `null`, the [active version](prompts.md#version-resolution) is resolved automatically. Returns a `PromptTemplate` instance.
+
+Caches the loaded prompt if caching is enabled.
+
+**Throws:** `PromptNotFoundException` if the prompt does not exist. `InvalidVersionException` if the specified version does not exist.
+
+```php
+$prompt = $manager->get('order-summary');       // active version
+$prompt = $manager->get('order-summary', 2);    // specific version
+```
+
+#### `active(string $name): PromptTemplate`
+
+Load the active version of a prompt. Equivalent to calling `get($name)` without a version.
+
+```php
+$prompt = $manager->active('order-summary');
+```
+
+#### `versions(string $name): array`
+
+List all versions for a prompt. Returns an array of version info sorted in ascending order.
+
+**Throws:** `PromptNotFoundException` if the prompt directory does not exist.
+
+```php
+$versions = $manager->versions('order-summary');
+// [
+//     ['version' => 1, 'path' => '/path/to/v1', 'metadata' => [...]],
+//     ['version' => 2, 'path' => '/path/to/v2', 'metadata' => [...]],
+// ]
+```
+
+#### `activate(string $name, int $version): bool`
+
+Activate a specific version of a prompt. Returns `true` on success.
+
+- **With tracking enabled:** Updates the `prompt_versions` database table.
+- **Without tracking:** Writes to `metadata.json` in the prompt directory.
+
+```php
+$manager->activate('order-summary', 2);
+```
+
+#### `track(string $promptName, int $version, array $data): void`
+
+Record a prompt execution for tracking. No-op if tracking is disabled.
+
+```php
+$manager->track('order-summary', 2, [
+    'input'    => ['message' => 'Hello'],
+    'output'   => 'Hi there!',
+    'tokens'   => 50,
+    'latency'  => 120.5,
+    'cost'     => 0.001,
+    'model'    => 'gpt-4o',
+    'provider' => 'openai',
+    'feedback' => ['rating' => 5],
+]);
+```
+
+---
+
+<a name="prompt-template"></a>
+## PromptTemplate
+
+`Veeqtoh\PromptDeck\PromptTemplate`
+
+Represents a loaded prompt with its roles, metadata, and interpolation capabilities. Implements `Illuminate\Contracts\Support\Arrayable`.
+
+### Constructor
+
+```php
+public function __construct(
+    protected string $name,
+    protected int $version,
+    protected array $roles = [],
+    protected array $metadata = [],
+)
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `$name` | `string` | The prompt name. |
+| `$version` | `int` | The resolved version number. |
+| `$roles` | `array<string, string>` | Role name → raw content map. |
+| `$metadata` | `array` | Prompt metadata from `metadata.json`. |
+
+### Methods
+
+#### `role(string $role, array $variables = []): string`
+
+Render a role's content with variable interpolation. Returns an empty string if the role does not exist.
+
+```php
+$content = $prompt->role('system', ['tone' => 'friendly']);
+```
+
+#### `raw(string $role): string`
+
+Get the raw content for a role without interpolation. Returns an empty string if the role does not exist.
+
+```php
+$template = $prompt->raw('system');
+```
+
+#### `has(string $role): bool`
+
+Check whether a specific role exists in this prompt.
+
+```php
+if ($prompt->has('assistant')) {
+    // ...
+}
+```
+
+#### `roles(): array`
+
+Get all available role names.
+
+```php
+$prompt->roles(); // ['system', 'user', 'assistant']
+```
+
+#### `toMessages(array $variables = [], ?array $only = null): array`
+
+Build a messages array for AI API consumption. Returns an array of `['role' => '...', 'content' => '...']` entries.
+
+| Parameter | Type | Description |
+|---|---|---|
+| `$variables` | `array` | Variables to interpolate into every role. |
+| `$only` | `array\|null` | Limit to these roles (preserves order). `null` = all roles. |
+
+```php
+$messages = $prompt->toMessages(['tone' => 'concise'], ['system', 'user']);
+```
+
+#### `version(): int`
+
+Get the resolved version number.
+
+```php
+$prompt->version(); // 2
+```
+
+#### `name(): string`
+
+Get the prompt name.
+
+```php
+$prompt->name(); // 'order-summary'
+```
+
+#### `metadata(): array`
+
+Get the prompt metadata. Returns an empty array if no metadata is defined.
+
+```php
+$prompt->metadata(); // ['description' => '...', 'variables' => [...]]
+```
+
+#### `toArray(): array`
+
+Convert the prompt to an array (implements `Arrayable`).
+
+```php
+$prompt->toArray();
+// ['name' => '...', 'version' => 2, 'roles' => [...], 'metadata' => [...]]
+```
+
+#### `__call(string $method, array $parameters): string`
+
+Dynamic role access via method call. Any method name is treated as a role name.
+
+```php
+$prompt->system(['tone' => 'friendly']);   // renders 'system' role
+$prompt->assistant(['context' => '...']);  // renders 'assistant' role
+$prompt->custom_role();                    // renders 'custom_role' role
+```
+
+---
+
+<a name="promptdeck-facade"></a>
+## PromptDeck Facade
+
+`Veeqtoh\PromptDeck\Facades\PromptDeck`
+
+Static proxy to the `PromptManager` singleton.
+
+### Available Methods
+
+| Method | Returns | Description |
+|---|---|---|
+| `PromptDeck::get(string $name, ?int $version = null)` | `PromptTemplate` | Load a prompt by name and optional version. |
+| `PromptDeck::active(string $name)` | `PromptTemplate` | Load the active version of a prompt. |
+| `PromptDeck::versions(string $name)` | `array` | List all versions for a prompt. |
+| `PromptDeck::activate(string $name, int $version)` | `bool` | Activate a specific version. |
+| `PromptDeck::track(string $name, int $version, array $data)` | `void` | Record a prompt execution. |
+
+---
+
+<a name="hasprompttemplate-trait"></a>
+## HasPromptTemplate Trait
+
+`Veeqtoh\PromptDeck\Concerns\HasPromptTemplate`
+
+Trait for integrating Prompt Deck templates with Laravel AI SDK agents.
+
+### Methods
+
+#### `promptName(): string`
+
+Get the prompt name. Defaults to the kebab-cased class name (e.g. `SalesCoach` → `sales-coach`). Override to use a custom name.
+
+#### `promptVersion(): ?int`
+
+Get the prompt version to load. Returns `null` by default (active version). Override to pin to a specific version.
+
+#### `promptVersion(): ?int`
+
+Get the prompt version to load. Returns `null` by default (active version). Override to pin to a specific version.
+
+#### `promptVariables(): array`
+
+Get variables for prompt template interpolation. Returns an empty array by default. Override to provide dynamic context.
+
+#### `promptTemplate(): PromptTemplate`
+
+Get the loaded `PromptTemplate` instance. Cached for the lifetime of the object.
+
+#### `instructions(): Stringable|string`
+
+Get the system instructions from the prompt template. Loads the `system` role and interpolates `promptVariables()`. Satisfies the AI SDK `Agent` contract.
+
+#### `promptMessages(?array $only = null): array`
+
+Get prompt roles as messages. By default returns all roles except `system`. Returns `Message[]` when the AI SDK is installed, or raw `['role' => '...', 'content' => '...']` arrays otherwise.
+
+| Parameter | Type | Description |
+|---|---|---|
+| `$only` | `array\|null` | Limit to specific roles. `null` = all non-system roles. |
+
+#### `forgetPromptTemplate(): static`
+
+Clear the cached `PromptTemplate`, forcing a fresh load on next access. Returns `$this` for fluent chaining.
+
+---
+
+<a name="trackpromptmiddleware"></a>
+## TrackPromptMiddleware
+
+`Veeqtoh\PromptDeck\Ai\TrackPromptMiddleware`
+
+Laravel AI SDK agent middleware that automatically tracks prompt executions.
+
+### Methods
+
+#### `handle(mixed $prompt, Closure $next): mixed`
+
+Handle the incoming agent prompt. Measures latency and records execution data using `PromptManager::track()` after the response completes.
+
+Only tracks agents that use the `HasPromptTemplate` trait (i.e. agents with a `promptName()` method).
+
+---
+
+<a name="aftermakeagent-listener"></a>
+## AfterMakeAgent Listener
+
+`Veeqtoh\PromptDeck\Listeners\AfterMakeAgent`
+
+Listens for the Laravel AI SDK's `make:agent` command and automatically scaffolds a corresponding Prompt Deck prompt.
+
+### Methods
+
+#### `handle(CommandFinished $event): void`
+
+Handle the `CommandFinished` event. Only acts on successful `make:agent` commands. Converts the agent name to kebab-case and runs `make:prompt` if the prompt doesn't already exist.
+
+---
+
+<a name="models"></a>
+## Models
+
+<a name="prompt-version"></a>
+### PromptVersion
+
+`Veeqtoh\PromptDeck\Models\PromptVersion`
+
+| Attribute | Type | Cast | Description |
+|---|---|---|---|
+| `name` | `string` | — | Prompt name. |
+| `version` | `int` | `integer` | Version number. |
+| `system_prompt` | `string\|null` | — | System prompt content. |
+| `user_prompt` | `string` | — | User prompt content. |
+| `metadata` | `array\|null` | `array` | Version metadata. |
+| `is_active` | `bool` | `boolean` | Whether this is the active version. |
+
+<a name="prompt-execution"></a>
+### PromptExecution
+
+`Veeqtoh\PromptDeck\Models\PromptExecution`
+
+| Attribute | Type | Cast | Description |
+|---|---|---|---|
+| `prompt_name` | `string` | — | Prompt name. |
+| `prompt_version` | `int` | `integer` | Version number. |
+| `input` | `array\|null` | `array` | Input data (JSON). |
+| `output` | `string\|null` | — | Response text. |
+| `tokens` | `int\|null` | `integer` | Total tokens. |
+| `latency_ms` | `int\|null` | `integer` | Latency in milliseconds. |
+| `cost` | `string\|null` | `decimal:6` | Cost (6 decimal places). |
+| `model` | `string\|null` | — | AI model used. |
+| `provider` | `string\|null` | — | AI provider. |
+| `feedback` | `array\|null` | `array` | Feedback data (JSON). |
+
+---
+
+<a name="exceptions"></a>
+## Exceptions
+
+All Prompt Deck exceptions extend the base `PromptDeckException` class.
+
+<a name="promptdeckexception"></a>
+### PromptDeckException
+
+`Veeqtoh\PromptDeck\Exceptions\PROMPTDECKException`
+
+Abstract base exception for all Prompt Deck errors. Extends PHP's `Exception` class.
+
+<a name="promptnotfoundexception"></a>
+### PromptNotFoundException
+
+`Veeqtoh\PromptDeck\Exceptions\PromptNotFoundException`
+
+Thrown when a prompt directory does not exist.
+
+| Factory Method | Description |
+|---|---|
+| `named(string $name): self` | Creates exception with message: `"Prompt [{name}] not found."` |
+
+<a name="invalidversionexception"></a>
+### InvalidVersionException
+
+`Veeqtoh\PromptDeck\Exceptions\InvalidVersionException`
+
+Thrown when a requested version does not exist or no versions are found.
+
+| Factory Method | Description |
+|---|---|
+| `forPrompt(string $name, int $version): self` | Creates exception with message: `"Version {version} for prompt [{name}] does not exist."` |
+| `noVersions(string $name): self` | Creates exception with message: `"No versions found for prompt [{name}]."` |
+
+<a name="configurationexception"></a>
+### ConfigurationException
+
+`Veeqtoh\PromptDeck\Exceptions\ConfigurationException`
+
+Thrown when Prompt Deck configuration is invalid.
+
+| Factory Method | Description |
+|---|---|
+| `invalidPath(string $path): self` | Creates exception with message: `"Prompts path [{path}] is not a directory or is not writable."` |
+
+<a name="promptrenderingexception"></a>
+### PromptRenderingException
+
+`Veeqtoh\PromptDeck\Exceptions\PromptRenderingException`
+
+Thrown when prompt rendering fails.
+
+| Factory Method | Description |
+|---|---|
+| `dueToMissingVariable(string $variable, string $promptName): self` | Creates exception with message: `"Cannot render prompt [{promptName}]: missing required variable '{variable}'."` |

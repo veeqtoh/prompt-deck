@@ -1,0 +1,486 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Support\Facades\DB;
+use Veeqtoh\PromptDeck\Exceptions\InvalidVersionException;
+use Veeqtoh\PromptDeck\Exceptions\PromptNotFoundException;
+use Veeqtoh\PromptDeck\PromptManager;
+use Veeqtoh\PromptDeck\PromptTemplate;
+
+// =====================================================================
+// Helper to get a fresh PromptManager bound to the test's temp directory
+// =====================================================================
+
+function freshManager(?array $configOverrides = []): PromptManager
+{
+    $app = app();
+
+    // Apply any config overrides.
+    foreach ($configOverrides as $key => $value) {
+        $app['config']->set($key, $value);
+    }
+
+    return new PromptManager(
+        $app['config']->get('prompt-deck.path'),
+        $app['config']->get('prompt-deck.extension', 'md'),
+        $app['cache']->store('array'),
+        $app['config'],
+    );
+}
+
+// =====================================================================
+// prompt() — filesystem loading
+// =====================================================================
+
+test('get() loads system and user content from filesystem', function () {
+    $this->createPromptFixture('greeting', 1, 'You are helpful.', 'Hello {{ $name }}');
+
+    $prompt = freshManager()->get('greeting', 1);
+
+    expect($prompt)->toBeInstanceOf(PromptTemplate::class)
+        ->and($prompt->name())->toBe('greeting')
+        ->and($prompt->version())->toBe(1)
+        ->and($prompt->system())->toBe('You are helpful.')
+        ->and($prompt->user(['name' => 'World']))->toBe('Hello World');
+});
+
+test('get() dynamically loads any role file from the version directory', function () {
+    $versionPath = $this->createPromptFixture('dynamic', 1, 'system text');
+    file_put_contents("{$versionPath}/assistant.md", 'assistant content');
+    file_put_contents("{$versionPath}/developer.md", 'developer content');
+
+    $prompt = freshManager()->get('dynamic', 1);
+
+    expect($prompt->has('system'))->toBeTrue()
+        ->and($prompt->has('assistant'))->toBeTrue()
+        ->and($prompt->has('developer'))->toBeTrue()
+        ->and($prompt->assistant())->toBe('assistant content')
+        ->and($prompt->developer())->toBe('developer content');
+});
+
+test('get() returns false for has() when role file is absent', function () {
+    $this->createPromptFixture('no-system', 1, null, 'user text only');
+
+    $prompt = freshManager()->get('no-system', 1);
+
+    expect($prompt->has('system'))->toBeFalse()
+        ->and($prompt->has('user'))->toBeTrue();
+});
+
+test('get() has no user role when user file is absent', function () {
+    $this->createPromptFixture('no-user', 1, 'system text', null);
+
+    $prompt = freshManager()->get('no-user', 1);
+
+    expect($prompt->has('user'))->toBeFalse()
+        ->and($prompt->user())->toBe('');
+});
+
+test('get() loads per-version metadata.json', function () {
+    $meta = ['description' => 'Version 1 prompt', 'author' => 'tester'];
+    $this->createPromptFixture('with-meta', 1, 'sys', 'usr', $meta);
+
+    $prompt = freshManager()->get('with-meta', 1);
+
+    expect($prompt->metadata())->toBe($meta);
+});
+
+test('get() returns empty metadata when metadata.json is absent', function () {
+    $this->createPromptFixture('no-meta', 1, 'sys', 'usr');
+
+    $prompt = freshManager()->get('no-meta', 1);
+
+    expect($prompt->metadata())->toBe([]);
+});
+
+test('get() throws InvalidVersionException for non-existent version directory', function () {
+    $this->createPromptFixture('exists', 1, 'sys', 'usr');
+
+    freshManager()->get('exists', 99);
+})->throws(InvalidVersionException::class, 'Version 99 for prompt [exists] does not exist.');
+
+test('get() uses custom extension from config', function () {
+    $versionPath = "{$this->tempDir}/custom-ext/v1";
+    mkdir($versionPath, 0755, true);
+    file_put_contents("{$versionPath}/system.txt", 'txt system');
+    file_put_contents("{$versionPath}/user.txt", 'txt user');
+
+    $this->app['config']->set('prompt-deck.extension', 'txt');
+    $prompt = freshManager()->get('custom-ext', 1);
+
+    expect($prompt->system())->toBe('txt system')
+        ->and($prompt->user())->toBe('txt user');
+});
+
+// =====================================================================
+// prompt() — caching
+// =====================================================================
+
+test('get() returns from cache when cache is enabled and warm', function () {
+    $this->createPromptFixture('cached', 1, 'original system', 'original user');
+
+    $this->app['config']->set('prompt-deck.cache.enabled', true);
+    $this->app['config']->set('prompt-deck.cache.ttl', 3600);
+
+    $manager = freshManager();
+
+    // First call populates cache.
+    $prompt1 = $manager->get('cached', 1);
+    expect($prompt1->system())->toBe('original system');
+
+    // Overwrite file on disk.
+    file_put_contents("{$this->tempDir}/cached/v1/system.md", 'modified system');
+
+    // Second call should still return cached version.
+    $prompt2 = $manager->get('cached', 1);
+    expect($prompt2->system())->toBe('original system');
+});
+
+test('get() skips cache when cache.enabled is false', function () {
+    $this->createPromptFixture('uncached', 1, 'first', 'user');
+
+    $this->app['config']->set('prompt-deck.cache.enabled', false);
+
+    $manager = freshManager();
+
+    $prompt1 = $manager->get('uncached', 1);
+    expect($prompt1->system())->toBe('first');
+
+    // Overwrite file on disk.
+    file_put_contents("{$this->tempDir}/uncached/v1/system.md", 'second');
+
+    // Should read from filesystem again.
+    $prompt2 = $manager->get('uncached', 1);
+    expect($prompt2->system())->toBe('second');
+});
+
+// =====================================================================
+// active() and getActiveVersion()
+// =====================================================================
+
+test('active() returns prompt with the active version from metadata.json', function () {
+    $this->createPromptFixture('multi', 1, 'sys v1', 'usr v1');
+    $this->createPromptFixture('multi', 2, 'sys v2', 'usr v2');
+    $this->createPromptFixture('multi', 3, 'sys v3', 'usr v3', null, ['active_version' => 2]);
+
+    $prompt = freshManager()->active('multi');
+
+    expect($prompt->version())->toBe(2)
+        ->and($prompt->system())->toBe('sys v2');
+});
+
+test('active() falls back to highest version when no active_version is set', function () {
+    $this->createPromptFixture('no-active', 1, 'sys v1', 'usr v1');
+    $this->createPromptFixture('no-active', 2, 'sys v2', 'usr v2');
+    $this->createPromptFixture('no-active', 3, 'sys v3', 'usr v3');
+
+    $prompt = freshManager()->active('no-active');
+
+    expect($prompt->version())->toBe(3);
+});
+
+test('active() throws InvalidVersionException when prompt has no version directories', function () {
+    mkdir("{$this->tempDir}/empty-prompt", 0755, true);
+
+    freshManager()->active('empty-prompt');
+})->throws(InvalidVersionException::class, 'No versions found for prompt [empty-prompt].');
+
+test('get() without version argument uses active version', function () {
+    $this->createPromptFixture('auto', 1, 'sys v1', 'usr v1', null, ['active_version' => 1]);
+
+    $prompt = freshManager()->get('auto');
+
+    expect($prompt->version())->toBe(1);
+});
+
+// =====================================================================
+// versions()
+// =====================================================================
+
+test('versions() returns sorted list of versions with metadata', function () {
+    $this->createPromptFixture('versioned', 2, 'sys', 'usr', ['description' => 'v2']);
+    $this->createPromptFixture('versioned', 1, 'sys', 'usr', ['description' => 'v1']);
+    $this->createPromptFixture('versioned', 3, 'sys', 'usr', ['description' => 'v3']);
+
+    $versions = freshManager()->versions('versioned');
+
+    expect($versions)->toHaveCount(3)
+        ->and($versions[0]['version'])->toBe(1)
+        ->and($versions[1]['version'])->toBe(2)
+        ->and($versions[2]['version'])->toBe(3)
+        ->and($versions[0]['metadata']['description'])->toBe('v1');
+});
+
+test('versions() ignores non-version directories', function () {
+    $this->createPromptFixture('mixed-dirs', 1, 'sys', 'usr');
+    mkdir("{$this->tempDir}/mixed-dirs/drafts", 0755, true);
+    mkdir("{$this->tempDir}/mixed-dirs/notes", 0755, true);
+
+    $versions = freshManager()->versions('mixed-dirs');
+
+    expect($versions)->toHaveCount(1)
+        ->and($versions[0]['version'])->toBe(1);
+});
+
+test('versions() throws PromptNotFoundException when directory does not exist', function () {
+    freshManager()->versions('nonexistent');
+})->throws(PromptNotFoundException::class, 'Prompt [nonexistent] not found.');
+
+test('versions() returns empty array when directory exists but has no v* subdirs', function () {
+    mkdir("{$this->tempDir}/empty-versions", 0755, true);
+
+    $versions = freshManager()->versions('empty-versions');
+
+    expect($versions)->toBe([]);
+});
+
+test('versions() includes version metadata from per-version metadata.json', function () {
+    $this->createPromptFixture('meta-versions', 1, 'sys', 'usr', ['author' => 'Alice']);
+    $this->createPromptFixture('meta-versions', 2, 'sys', 'usr');
+
+    $versions = freshManager()->versions('meta-versions');
+
+    expect($versions[0]['metadata']['author'])->toBe('Alice')
+        ->and($versions[1]['metadata'])->toBe([]);
+});
+
+// =====================================================================
+// activate() — filesystem mode (tracking disabled)
+// =====================================================================
+
+test('activate() writes active_version to metadata.json', function () {
+    $this->createPromptFixture('activatable', 1, 'sys', 'usr');
+    $this->createPromptFixture('activatable', 2, 'sys', 'usr');
+
+    $result = freshManager()->activate('activatable', 2);
+
+    expect($result)->toBeTrue();
+
+    $metadata = json_decode(file_get_contents("{$this->tempDir}/activatable/metadata.json"), true);
+    expect($metadata['active_version'])->toBe(2);
+});
+
+test('activate() creates metadata.json if it does not exist', function () {
+    $this->createPromptFixture('no-meta-activate', 1, 'sys', 'usr');
+
+    $metaPath = "{$this->tempDir}/no-meta-activate/metadata.json";
+    expect(file_exists($metaPath))->toBeFalse();
+
+    freshManager()->activate('no-meta-activate', 1);
+
+    expect(file_exists($metaPath))->toBeTrue();
+    $meta = json_decode(file_get_contents($metaPath), true);
+    expect($meta['active_version'])->toBe(1);
+});
+
+test('activate() preserves existing metadata keys when updating active_version', function () {
+    $this->createPromptFixture('preserve-meta', 1, 'sys', 'usr', null, [
+        'name'           => 'preserve-meta',
+        'description'    => 'My prompt',
+        'active_version' => 1,
+    ]);
+
+    freshManager()->activate('preserve-meta', 2);
+
+    $meta = json_decode(file_get_contents("{$this->tempDir}/preserve-meta/metadata.json"), true);
+    expect($meta['active_version'])->toBe(2)
+        ->and($meta['name'])->toBe('preserve-meta')
+        ->and($meta['description'])->toBe('My prompt');
+});
+
+test('activate() always returns true in filesystem mode', function () {
+    $this->createPromptFixture('fs-activate', 1, 'sys', 'usr');
+
+    // Even for a non-existent version number, filesystem mode always returns true
+    $result = freshManager()->activate('fs-activate', 999);
+
+    expect($result)->toBeTrue();
+});
+
+// =====================================================================
+// activate() — database mode (tracking enabled)
+// =====================================================================
+
+test('activate() with tracking enabled updates database', function () {
+    $this->setUpTrackingTables();
+    $this->createPromptFixture('db-activate', 1, 'sys', 'usr');
+    $this->createPromptFixture('db-activate', 2, 'sys', 'usr');
+
+    $this->app['config']->set('prompt-deck.tracking.enabled', true);
+    $this->app['config']->set('prompt-deck.tracking.connection', 'testing');
+
+    DB::connection('testing')->table('prompt_versions')->insert([
+        ['name' => 'db-activate', 'version' => 1, 'is_active' => true],
+        ['name' => 'db-activate', 'version' => 2, 'is_active' => false],
+    ]);
+
+    $result = freshManager()->activate('db-activate', 2);
+
+    expect($result)->toBeTrue();
+
+    $v1 = DB::connection('testing')->table('prompt_versions')
+        ->where('name', 'db-activate')->where('version', 1)->first();
+    $v2 = DB::connection('testing')->table('prompt_versions')
+        ->where('name', 'db-activate')->where('version', 2)->first();
+
+    expect((bool) $v1->is_active)->toBeFalse()
+        ->and((bool) $v2->is_active)->toBeTrue();
+});
+
+test('activate() with tracking enabled returns false when version not in DB', function () {
+    $this->setUpTrackingTables();
+
+    $this->app['config']->set('prompt-deck.tracking.enabled', true);
+    $this->app['config']->set('prompt-deck.tracking.connection', 'testing');
+
+    $result = freshManager()->activate('nonexistent', 99);
+
+    expect($result)->toBeFalse();
+});
+
+// =====================================================================
+// getActiveVersion() — database mode
+// =====================================================================
+
+test('getActiveVersion reads from database when tracking is enabled', function () {
+    $this->setUpTrackingTables();
+    $this->createPromptFixture('db-active', 1, 'sys v1', 'usr v1');
+    $this->createPromptFixture('db-active', 2, 'sys v2', 'usr v2');
+
+    $this->app['config']->set('prompt-deck.tracking.enabled', true);
+    $this->app['config']->set('prompt-deck.tracking.connection', 'testing');
+
+    DB::connection('testing')->table('prompt_versions')->insert([
+        ['name' => 'db-active', 'version' => 1, 'is_active' => false],
+        ['name' => 'db-active', 'version' => 2, 'is_active' => true],
+    ]);
+
+    $prompt = freshManager()->active('db-active');
+
+    expect($prompt->version())->toBe(2);
+});
+
+test('getActiveVersion falls back to metadata.json when DB has no active record', function () {
+    $this->setUpTrackingTables();
+    $this->createPromptFixture('db-fallback', 1, 'sys v1', 'usr v1');
+    $this->createPromptFixture('db-fallback', 2, 'sys v2', 'usr v2', null, ['active_version' => 1]);
+
+    $this->app['config']->set('prompt-deck.tracking.enabled', true);
+    $this->app['config']->set('prompt-deck.tracking.connection', 'testing');
+
+    // No active record in DB.
+    DB::connection('testing')->table('prompt_versions')->insert([
+        ['name' => 'db-fallback', 'version' => 1, 'is_active' => false],
+        ['name' => 'db-fallback', 'version' => 2, 'is_active' => false],
+    ]);
+
+    $prompt = freshManager()->active('db-fallback');
+
+    expect($prompt->version())->toBe(1);
+});
+
+// =====================================================================
+// track()
+// =====================================================================
+
+test('track() inserts execution record with all fields when tracking enabled', function () {
+    $this->setUpTrackingTables();
+
+    $this->app['config']->set('prompt-deck.tracking.enabled', true);
+    $this->app['config']->set('prompt-deck.tracking.connection', 'testing');
+
+    $manager = freshManager();
+    $manager->track('greeting', 1, [
+        'input'    => ['message' => 'hello'],
+        'output'   => 'Hi there!',
+        'tokens'   => 150,
+        'latency'  => 234.5,
+        'cost'     => 0.002,
+        'model'    => 'gpt-4',
+        'provider' => 'openai',
+        'feedback' => ['rating' => 5],
+    ]);
+
+    $record = DB::connection('testing')->table('prompt_executions')->first();
+
+    expect($record)->not->toBeNull()
+        ->and($record->prompt_name)->toBe('greeting')
+        ->and($record->prompt_version)->toBe(1)
+        ->and($record->output)->toBe('Hi there!')
+        ->and($record->tokens)->toBe(150)
+        ->and($record->model)->toBe('gpt-4')
+        ->and($record->provider)->toBe('openai');
+});
+
+test('track() handles partial data with null fields', function () {
+    $this->setUpTrackingTables();
+
+    $this->app['config']->set('prompt-deck.tracking.enabled', true);
+    $this->app['config']->set('prompt-deck.tracking.connection', 'testing');
+
+    $manager = freshManager();
+    $manager->track('minimal', 2, [
+        'input'  => 'simple input',
+        'output' => 'simple output',
+    ]);
+
+    $record = DB::connection('testing')->table('prompt_executions')->first();
+
+    expect($record)->not->toBeNull()
+        ->and($record->prompt_name)->toBe('minimal')
+        ->and($record->tokens)->toBeNull()
+        ->and($record->model)->toBeNull()
+        ->and($record->cost)->toBeNull();
+});
+
+test('track() does nothing when tracking is disabled', function () {
+    $this->setUpTrackingTables();
+
+    $this->app['config']->set('prompt-deck.tracking.enabled', false);
+
+    $manager = freshManager();
+    $manager->track('ignored', 1, ['input' => 'test', 'output' => 'response']);
+
+    $count = DB::connection('testing')->table('prompt_executions')->count();
+
+    expect($count)->toBe(0);
+});
+
+// =====================================================================
+// Constructor edge cases
+// =====================================================================
+
+test('constructor trims trailing slashes from basePath', function () {
+    $this->createPromptFixture('trimmed', 1, 'sys', 'usr');
+
+    // Explicitly pass path with trailing slash.
+    $manager = new PromptManager(
+        $this->tempDir.'/',
+        'md',
+        app('cache')->store('array'),
+        app('config'),
+    );
+
+    $prompt = $manager->get('trimmed', 1);
+
+    expect($prompt->system())->toBe('sys');
+});
+
+test('constructor strips leading dot from extension', function () {
+    $versionPath = "{$this->tempDir}/dot-ext/v1";
+    mkdir($versionPath, 0755, true);
+    file_put_contents("{$versionPath}/system.txt", 'dotted');
+    file_put_contents("{$versionPath}/user.txt", 'user dotted');
+
+    $manager = new PromptManager(
+        $this->tempDir,
+        '.txt',
+        app('cache')->store('array'),
+        app('config'),
+    );
+
+    $prompt = $manager->get('dot-ext', 1);
+
+    expect($prompt->system())->toBe('dotted');
+});

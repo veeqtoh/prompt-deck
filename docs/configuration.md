@@ -1,0 +1,246 @@
+# Configuration
+
+- [Introduction](#introduction)
+- [Publishing the Configuration](#publishing-the-configuration)
+- [Prompts Path](#prompts-path)
+- [File Extension](#file-extension)
+- [Versioning Strategy](#versioning-strategy)
+- [Cache](#cache)
+    - [Enabling / Disabling](#enabling-disabling-cache)
+    - [Cache Store](#cache-store)
+    - [TTL](#ttl)
+    - [Cache Key Prefix](#cache-key-prefix)
+- [Database Tracking](#database-tracking)
+    - [Enabling / Disabling](#enabling-disabling-tracking)
+    - [Database Connection](#database-connection)
+- [AI SDK Integration](#ai-sdk-integration)
+- [Full Configuration Reference](#full-configuration-reference)
+- [Environment Variables Reference](#environment-variables-reference)
+
+<a name="introduction"></a>
+## Introduction
+
+Prompt Deck ships with sensible defaults that work out of the box. Like most Laravel packages, all configuration lives in `config/prompt-deck.php` and every option can be overridden via environment variables for deployment flexibility.
+
+<a name="publishing-the-configuration"></a>
+## Publishing the Configuration
+
+Publish the configuration file using the Artisan command:
+
+```bash
+php artisan vendor:publish --tag=prompt-deck-config
+```
+
+This copies the package's default configuration to `config/prompt-deck.php` in your application. Once published, you can modify it freely.
+
+<a name="prompts-path"></a>
+## Prompts Path
+
+The `path` option determines where your versioned prompt files are stored on disk:
+
+```php
+'path' => resource_path('prompts'),
+```
+
+By default, prompts live in `resources/prompts/`. You can change this to any directory:
+
+```php
+'path' => base_path('ai/prompts'),
+```
+
+The directory is created automatically when you first run `php artisan make:prompt`.
+
+<a name="file-extension"></a>
+## File Extension
+
+The `extension` option controls the file extension used for prompt template files:
+
+```php
+'extension' => 'md',
+```
+
+Markdown (`.md`) is the default and recommended for readability. You can change it to any extension:
+
+| Value | Result |
+|---|---|
+| `md` | `system.md`, `user.md` |
+| `txt` | `system.txt`, `user.txt` |
+| `blade.php` | `system.blade.php`, `user.blade.php` |
+| `prompt` | `system.prompt`, `user.prompt` |
+
+> **Note**
+> Changing the extension only affects newly generated files. Existing prompt files are not renamed automatically.
+
+<a name="versioning-strategy"></a>
+## Versioning Strategy
+
+The `versioning` option controls how prompt versions are organised:
+
+```php
+'versioning' => 'directory',
+```
+
+Currently, only the `directory` strategy is supported. Each version is stored in its own sub-directory (`v1/`, `v2/`, etc.) within the prompt's folder:
+
+```
+resources/prompts/order-summary/
+├── v1/
+│   └── system.md
+├── v2/
+│   ├── system.md
+│   └── user.md
+└── metadata.json
+```
+
+<a name="cache"></a>
+## Cache
+
+The `cache` section controls prompt caching behaviour. Caching avoids repeated filesystem reads by storing loaded prompts in your configured cache store.
+
+```php
+'cache' => [
+    'enabled' => env('PROMPTDECK_CACHE_ENABLED', env('APP_DEBUG', false) ? false : true),
+    'store'   => env('PROMPTDECK_CACHE_STORE', 'file'),
+    'ttl'     => env('PROMPTDECK_CACHE_TTL', 3600),
+    'prefix'  => env('CACHE_PREFIX', env('PROMPTDECK_CACHE_PREFIX', 'prompt-deck:')),
+],
+```
+
+<a name="enabling-disabling-cache"></a>
+### Enabling / Disabling
+
+```php
+'enabled' => env('PROMPTDECK_CACHE_ENABLED', env('APP_DEBUG', false) ? false : true),
+```
+
+By default, caching is **disabled** when `APP_DEBUG=true` (local development) and **enabled** in production. This ensures that file changes are picked up immediately during development.
+
+Override via your `.env`:
+
+```dotenv
+PROMPTDECK_CACHE_ENABLED=false   # Always disable caching
+PROMPTDECK_CACHE_ENABLED=true    # Always enable caching
+```
+
+<a name="cache-store"></a>
+### Cache Store
+
+```php
+'store' => env('PROMPTDECK_CACHE_STORE', 'file'),
+```
+
+The cache store to use. Must match a store name defined in your `config/cache.php`. Common values:
+
+| Store | Description |
+|---|---|
+| `file` | File-based cache (default). Simple, no extra dependencies. |
+| `redis` | Redis cache. Fast, shared across workers. |
+| `memcached` | Memcached. Similar to Redis. |
+| `array` | In-memory only. Cleared on each request (useful for testing). |
+
+<a name="ttl"></a>
+### TTL
+
+```php
+'ttl' => env('PROMPTDECK_CACHE_TTL', 3600),
+```
+
+Cache time-to-live in **seconds**. After this duration, the prompt is re-read from disk on the next access. Default is 3600 seconds (1 hour).
+
+<a name="cache-key-prefix"></a>
+### Cache Key Prefix
+
+```php
+'prefix' => env('CACHE_PREFIX', env('PROMPTDECK_CACHE_PREFIX', 'prompt-deck:')),
+```
+
+The prefix prepended to all cache keys. The final cache key follows the pattern: `{prefix}{prompt-name}.v{version}`.
+
+For example, with the default prefix:
+```
+prompt-deck:order-summary.v2
+```
+
+<a name="database-tracking"></a>
+## Database Tracking
+
+The `tracking` section controls whether prompt versions and executions are logged to the database.
+
+```php
+'tracking' => [
+    'enabled'    => env('PROMPTDECK_TRACKING_ENABLED', env('APP_DEBUG', false) ? false : true),
+    'connection' => env('PROMPTDECK_DB_CONNECTION'),
+],
+```
+
+<a name="enabling-disabling-tracking"></a>
+### Enabling / Disabling
+
+```php
+'enabled' => env('PROMPTDECK_TRACKING_ENABLED', env('APP_DEBUG', false) ? false : true),
+```
+
+Like caching, tracking is **disabled** in debug mode and **enabled** in production by default. When enabled:
+
+- **Version activation** is stored in the `prompt_versions` database table (instead of `metadata.json`).
+- **Execution tracking** via `PromptDeck::track()` inserts records into the `prompt_executions` table.
+
+> **Important**
+> You must publish and run the migrations before enabling tracking. See [Installation — Publishing Migrations](installation.md#publishing-migrations).
+
+<a name="database-connection"></a>
+### Database Connection
+
+```php
+'connection' => env('PROMPTDECK_DB_CONNECTION'),
+```
+
+The database connection to use for tracking tables. Set to `null` (the default) to use your application's default connection. Set to a named connection from `config/database.php` if you want tracking data stored on a separate database:
+
+```dotenv
+PROMPTDECK_DB_CONNECTION=analytics
+```
+
+<a name="ai-sdk-integration"></a>
+## AI SDK Integration
+
+```php
+'scaffold_on_make_agent' => env('PROMPTDECK_SCAFFOLD_ON_MAKE_AGENT', true),
+```
+
+When the [Laravel AI SDK](https://laravel.com/docs/ai-sdk) is installed and this option is `true`, Prompt Deck automatically creates a matching prompt directory whenever you run `php artisan make:agent`. See the [AI SDK Integration](ai-sdk.md) documentation for details.
+
+Set to `false` to disable automatic scaffolding:
+
+```dotenv
+PROMPTDECK_SCAFFOLD_ON_MAKE_AGENT=false
+```
+
+<a name="full-configuration-reference"></a>
+## Full Configuration Reference
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `path` | `string` | `resource_path('prompts')` | Base directory where prompt files are stored. |
+| `extension` | `string` | `md` | File extension for prompt template files. |
+| `versioning` | `string` | `directory` | Versioning strategy (`directory`). |
+| `cache.enabled` | `bool` | `true` (prod) / `false` (debug) | Enable prompt caching. |
+| `cache.store` | `string` | `file` | Cache store name. |
+| `cache.ttl` | `int` | `3600` | Cache TTL in seconds. |
+| `cache.prefix` | `string` | `prompt-deck:` | Cache key prefix. |
+| `tracking.enabled` | `bool` | `true` (prod) / `false` (debug) | Enable database tracking. |
+| `tracking.connection` | `string\|null` | `null` | Database connection name. |
+| `scaffold_on_make_agent` | `bool` | `true` | Auto-scaffold prompts on `make:agent`. |
+
+<a name="environment-variables-reference"></a>
+## Environment Variables Reference
+
+| Variable | Default | Description |
+|---|---|---|
+| `PROMPTDECK_CACHE_ENABLED` | Dynamic | Enable/disable caching. |
+| `PROMPTDECK_CACHE_STORE` | `file` | Cache store to use. |
+| `PROMPTDECK_CACHE_TTL` | `3600` | Cache TTL in seconds. |
+| `PROMPTDECK_CACHE_PREFIX` | `prompt-deck:` | Cache key prefix. |
+| `PROMPTDECK_TRACKING_ENABLED` | Dynamic | Enable/disable database tracking. |
+| `PROMPTDECK_DB_CONNECTION` | `null` | Database connection for tracking. |
+| `PROMPTDECK_SCAFFOLD_ON_MAKE_AGENT` | `true` | Auto-scaffold on `make:agent`. |
