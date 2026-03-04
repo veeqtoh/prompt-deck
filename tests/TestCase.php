@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Veeqtoh\PromptDeck\Tests;
 
 use Orchestra\Testbench\TestCase as BaseTestCase;
-use Veeqtoh\PromptDeck\Providers\PROMPTDECKProvider;
+use Veeqtoh\PromptDeck\Providers\PromptDeckServiceProvider;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -34,7 +34,7 @@ abstract class TestCase extends BaseTestCase
     protected function getPackageProviders($app): array
     {
         return [
-            PROMPTDECKProvider::class,
+            PromptDeckServiceProvider::class,
         ];
     }
 

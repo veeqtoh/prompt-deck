@@ -24,6 +24,7 @@
     - [Using a One-Off Template](#using-a-one-off-template)
 - [Name Normalisation](#name-normalisation)
 - [Configuration](#configuration)
+- [Examples](#examples)
 
 <a name="introduction"></a>
 ## Introduction
@@ -70,7 +71,7 @@ You will be guided through a series of questions:
 3. **Would you also like to create a user prompt file?** — Confirm to scaffold a `user.md` alongside `system.md`.
 4. **Would you like to create prompt files for additional roles?** — Confirm, then enter comma-separated role names (e.g. `assistant, developer`).
 
-> **Note**  
+> **Note**
 > The interactive description and user-prompt questions are only asked when the name argument is omitted. When passing a name directly, use the `--desc`, `--user`, and `--interactive` options instead.
 
 <a name="command-signature"></a>
@@ -158,6 +159,16 @@ php artisan make:prompt code-reviewer
 # Creates: resources/prompts/code-reviewer/v1/system.md
 ```
 
+The default system prompt stub contains:
+
+```markdown
+You are an AI assistant specialized in...
+
+Follow these guidelines:
+- Be helpful
+- Use {{ $tone }} tone
+```
+
 <a name="user-role"></a>
 ### User Role
 
@@ -169,6 +180,16 @@ php artisan make:prompt code-reviewer --user
 ```
 
 In the interactive flow (name omitted), you are asked whether to create a user prompt via a confirmation question.
+
+The default user prompt stub contains:
+
+```markdown
+# User prompt for {{ $name }}
+
+Your task is to...
+
+User input: {{ $input }}
+```
 
 <a name="extra-roles"></a>
 ### Extra Roles
@@ -182,6 +203,16 @@ php artisan make:prompt code-reviewer --role=assistant --role=developer
 
 Role names are normalised to kebab-case (e.g. `ToolCall` becomes `tool-call.md`). Each role file uses the `role-prompt.stub` template with the `{{ $role }}` placeholder replaced by the actual role name.
 
+The default role prompt stub contains:
+
+```markdown
+# {role} prompt
+
+You are acting in the {role} role.
+
+Your task is to...
+```
+
 To choose roles interactively **without** omitting the name argument, pass `--interactive` (or `-i`):
 
 ```bash
@@ -190,7 +221,7 @@ php artisan make:prompt code-reviewer -i
 # Then:    "Which roles? (comma-separated, e.g. assistant,developer)"
 ```
 
-> **Note**  
+> **Note**
 > When `--role` values are provided explicitly, the interactive role prompt is skipped — explicit values always take precedence.
 
 All scaffolded roles (including `system` and optionally `user`) are recorded in the `roles` array of `metadata.json`.
@@ -209,7 +240,7 @@ When you run the command for a prompt that already has one or more versions, you
 php artisan make:prompt code-reviewer
 # ⚠ Prompt [code-reviewer] already exists at version 2.
 # What would you like to do?
-#   [version]   Create a new version (v3)
+#   [version]    Create a new version (v3)
 #   [overwrite]  Overwrite version 2
 #   [cancel]     Cancel
 ```
@@ -249,6 +280,8 @@ The content of generated prompt files comes from **stub templates**. Three stubs
 | `system-prompt.stub`    | `system.md`        | `{{ $tone }}`      |
 | `user-prompt.stub`      | `user.md`          | `{{ $name }}`, `{{ $input }}` |
 | `role-prompt.stub`      | Extra role files   | `{{ $role }}` (auto-replaced at generation time) |
+
+The default stubs are located in the package's `stubs/` directory.
 
 <a name="custom-stubs"></a>
 ### Custom Stubs
@@ -303,11 +336,7 @@ The command respects the following values from `config/prompt-deck.php`:
 | `prompt-deck.path`       | `resource_path('prompts')` | Base directory where prompt structures are created. |
 | `prompt-deck.extension`  | `md`                     | File extension for generated prompt files. |
 
-Publish the configuration file with:
-
-```bash
-php artisan vendor:publish --tag=prompt-deck-config
-```
+See the full [Configuration](configuration.md) reference for all options.
 
 <a name="examples"></a>
 ## Examples

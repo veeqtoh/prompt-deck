@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Facade;
  *
  * @see \Veeqtoh\PromptDeck\PromptManager
  */
-class PROMPTDECK extends Facade
+class PromptDeck extends Facade
 {
     protected static function getFacadeAccessor(): string
     {

@@ -39,8 +39,8 @@ class PromptManager
      * Get a prompt instance by name and optional version.
      * If version is not provided, the active version will be used.
      *
-     *   PROMPTDECK::get('order-summary')        // active version.
-     *   PROMPTDECK::get('order-summary', 2)     // specific version.
+     *   PromptDeck::get('order-summary')        // active version.
+     *   PromptDeck::get('order-summary', 2)     // specific version.
      */
     public function get(string $name, ?int $version = null): PromptTemplate
     {

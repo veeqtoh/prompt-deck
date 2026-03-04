@@ -1,0 +1,346 @@
+# Artisan Commands
+
+- [Introduction](#introduction)
+- [make:prompt](#make-prompt)
+- [prompt:list](#prompt-list)
+- [prompt:activate](#prompt-activate)
+- [prompt:diff](#prompt-diff)
+- [prompt:test](#prompt-test)
+
+<a name="introduction"></a>
+## Introduction
+
+Prompt Deck registers five Artisan commands for managing your prompts from the command line. All commands are available when running in the console.
+
+| Command | Description |
+|---|---|
+| `make:prompt` | Create a new prompt structure with versioned role files. |
+| `prompt:list` | List all available prompts and their versions. |
+| `prompt:activate` | Activate a specific version of a prompt. |
+| `prompt:diff` | Show differences between two prompt versions. |
+| `prompt:test` | Test a prompt with sample input and see the rendered result. |
+
+<a name="make-prompt"></a>
+## make:prompt
+
+Create a new prompt structure for your AI agent.
+
+```
+make:prompt {name?} {--from=} {--desc=} {--u|user} {--role=*} {--i|interactive} {--f|force}
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `name` | No | The name of the prompt. Omit for interactive mode. Automatically normalised to kebab-case. |
+
+### Options
+
+| Option | Shorthand | Description |
+|---|---|---|
+| `--from=` | | Path to a custom stub file to use as the user prompt template. |
+| `--desc=` | | A short description stored in `metadata.json`. |
+| `--user` | `-u` | Also create a `user` prompt file alongside the default `system` prompt. |
+| `--role=*` | | Additional roles to scaffold. Repeatable (e.g. `--role=assistant --role=developer`). |
+| `--interactive` | `-i` | Interactively choose which additional roles to create. |
+| `--force` | `-f` | Overwrite an existing prompt's latest version without confirmation. |
+
+### Examples
+
+```bash
+# Minimal prompt (system only)
+php artisan make:prompt order-summary
+
+# With system + user files
+php artisan make:prompt order-summary --user
+
+# With system + multiple custom roles
+php artisan make:prompt order-summary --role=assistant --role=developer
+
+# With description
+php artisan make:prompt order-summary --desc="Summarises customer orders"
+
+# Fully interactive
+php artisan make:prompt
+
+# Force-overwrite in CI
+php artisan make:prompt order-summary --force
+
+# Custom user prompt template
+php artisan make:prompt order-summary --user --from=stubs/my-template.md
+```
+
+### Output
+
+```
+Version 1 of the [order-summary] prompt has been created successfully with the following roles: system, user.
+```
+
+### Behaviour with Existing Prompts
+
+When run against a prompt that already exists, the command presents a choice:
+
+```
+⚠ Prompt [order-summary] already exists at version 2.
+What would you like to do?
+  [version]    Create a new version (v3)
+  [overwrite]  Overwrite version 2
+  [cancel]     Cancel
+```
+
+With `--force`, the latest version is overwritten without prompting.
+
+See [Creating Prompts](make-prompt.md) for comprehensive documentation.
+
+<a name="prompt-list"></a>
+## prompt:list
+
+List all available prompts and their versions.
+
+```
+prompt:list {--all : Show all versions for each prompt}
+```
+
+### Options
+
+| Option | Description |
+|---|---|
+| `--all` | Show all versions for each prompt, not just the active one. |
+
+### Examples
+
+**List active versions only:**
+
+```bash
+php artisan prompt:list
+```
+
+Output:
+
+```
++---------------+----------------+--------+----------------------------+
+| Prompt        | Active Version | Active | Description                |
++---------------+----------------+--------+----------------------------+
+| order-summary | v2             | ✅     | Summarises customer orders |
+| code-reviewer | v1             | ✅     | Reviews code quality       |
++---------------+----------------+--------+----------------------------+
+```
+
+**List all versions:**
+
+```bash
+php artisan prompt:list --all
+```
+
+Output:
+
+```
++---------------+----------------+--------+----------------------------+
+| Prompt        | Active Version | Active | Description                |
++---------------+----------------+--------+----------------------------+
+| order-summary | v1             |        | Initial version            |
+| order-summary | v2             | ✅     | Improved tone              |
+| code-reviewer | v1             | ✅     | Reviews code quality       |
++---------------+----------------+--------+----------------------------+
+```
+
+### Notes
+
+- If the prompts directory does not exist, a warning is displayed.
+- If no prompts are found, an informational message is shown.
+- Descriptions come from each version's `metadata.json`.
+
+<a name="prompt-activate"></a>
+## prompt:activate
+
+Activate a specific version of a prompt.
+
+```
+prompt:activate {name : The prompt name} {version : The version number to activate}
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `name` | Yes | The prompt name (e.g. `order-summary`). |
+| `version` | Yes | The version number to activate (e.g. `2`). |
+
+### Examples
+
+```bash
+php artisan prompt:activate order-summary 2
+```
+
+Output:
+
+```
+Version 2 of prompt [order-summary] activated.
+```
+
+### How It Works
+
+- **With database tracking enabled**: Updates the `prompt_versions` table — sets `is_active = false` on all versions for that prompt, then `is_active = true` on the specified version.
+- **Without tracking**: Writes the `active_version` key to the prompt's root `metadata.json` file.
+
+### Error Handling
+
+If the prompt or version does not exist, an error message is displayed:
+
+```
+Version 5 for prompt [order-summary] does not exist.
+```
+
+<a name="prompt-diff"></a>
+## prompt:diff
+
+Show differences between two prompt versions using unified diff output.
+
+```
+prompt:diff {name : The prompt name} {--v1= : First version number} {--v2= : Second version number} {--type= : system, user, or all (default)}
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `name` | Yes | The prompt name (e.g. `order-summary`). |
+
+### Options
+
+| Option | Required | Description |
+|---|---|---|
+| `--v1=` | Yes | The first version number to compare. |
+| `--v2=` | Yes | The second version number to compare. |
+| `--type=` | No | Which role files to compare: `system`, `user`, or `all` (default). |
+
+### Examples
+
+**Compare all role files between v1 and v2:**
+
+```bash
+php artisan prompt:diff order-summary --v1=1 --v2=2
+```
+
+Output:
+
+```
+--- System Prompt ---
+@@ -1,5 +1,5 @@
+ You are an AI assistant specialized in...
+
+ Follow these guidelines:
+-- Use {{ $tone }} tone
+-+ Use a professional and {{ $tone }} tone
++- Be helpful and concise
+
+--- User Prompt ---
+@@ -1,3 +1,3 @@
+...
+```
+
+**Compare only system prompts:**
+
+```bash
+php artisan prompt:diff order-summary --v1=1 --v2=2 --type=system
+```
+
+**Compare only user prompts:**
+
+```bash
+php artisan prompt:diff order-summary --v1=1 --v2=2 --type=user
+```
+
+### Notes
+
+- Both `--v1` and `--v2` are required. The command fails with an error if either is missing.
+- If a role file exists in one version but not the other, the diff shows the full content as added or removed.
+- If a role file doesn't exist in either version, it is silently skipped.
+- Uses `sebastian/diff` for unified diff output.
+
+<a name="prompt-test"></a>
+## prompt:test
+
+Test a prompt with sample input and see the rendered result.
+
+```
+prompt:test {name : The prompt name} {--ver= : Specific version (defaults to active)} {--input= : The input to test} {--variables= : JSON string of variables}
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `name` | Yes | The prompt name to test (e.g. `order-summary`). |
+
+### Options
+
+| Option | Description |
+|---|---|
+| `--ver=` | Specific version to test. Defaults to the active version. |
+| `--input=` | Custom input text. Defaults to `"Sample user input"`. |
+| `--variables=` | JSON string of variables for interpolation. Defaults to `{}`. |
+
+### Examples
+
+**Test the active version with defaults:**
+
+```bash
+php artisan prompt:test order-summary
+```
+
+Output:
+
+```
+Testing prompt [order-summary] version 2
+
+Expected variables: tone, input
+
+--- SYSTEM PROMPT ---
+You are an AI assistant specialized in...
+
+Follow these guidelines:
+- Be helpful
+- Use {{ $tone }} tone
+
+--- USER PROMPT ---
+Summarise the following order: Sample user input
+```
+
+**Test a specific version with variables:**
+
+```bash
+php artisan prompt:test order-summary --ver=1 --variables='{"tone":"friendly","input":"Order #1234"}'
+```
+
+Output:
+
+```
+Testing prompt [order-summary] version 1
+
+Expected variables: tone, input
+
+--- SYSTEM PROMPT ---
+You are an AI assistant specialized in...
+
+Follow these guidelines:
+- Be helpful
+- Use friendly tone
+
+--- USER PROMPT ---
+Summarise the following order: Order #1234
+```
+
+**Test with custom input:**
+
+```bash
+php artisan prompt:test order-summary --input="Order #5678 with 3 items"
+```
+
+### Notes
+
+- The `--variables` option expects valid JSON. Invalid JSON produces an error: `Invalid JSON for --variables`.
+- Expected variables (from `metadata.json`) are displayed as a hint, if available.
+- Both the rendered system and user prompts are displayed.
+- Unmatched variables remain as placeholders in the output, making it easy to spot missing values.

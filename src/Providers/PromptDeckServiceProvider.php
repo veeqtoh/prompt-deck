@@ -14,7 +14,7 @@ use Veeqtoh\PromptDeck\Console\Commands\PromptDiffCommand;
 use Veeqtoh\PromptDeck\Console\Commands\TestPromptCommand;
 use Veeqtoh\PromptDeck\PromptManager;
 
-class PROMPTDECKProvider extends ServiceProvider
+class PromptDeckServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap the application services.
@@ -35,7 +35,7 @@ class PROMPTDECKProvider extends ServiceProvider
     }
 
     /**
-     * Setup the configuration for PROMPTDECK.
+     * Setup the configuration for PromptDeck.
      */
     protected function configure(): void
     {
@@ -77,7 +77,7 @@ class PROMPTDECKProvider extends ServiceProvider
     }
 
     /**
-     * Register Artisan commands for PROMPTDECK.
+     * Register Artisan commands for PromptDeck.
      */
     protected function registerArtisanCommands(): void
     {

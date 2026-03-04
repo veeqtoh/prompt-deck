@@ -53,10 +53,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Veeqtoh\\PromptDeck\\Providers\\PROMPTDECKProvider"
+                "Veeqtoh\\PromptDeck\\Providers\\PromptDeckServiceProvider"
             ],
             "aliases": {
-                "PROMPTDECK": "Veeqtoh\\PromptDeck\\Facades\\PROMPTDECK"
+                "PromptDeck": "Veeqtoh\\PromptDeck\\Facades\\PromptDeck"
             }
         }
     },
