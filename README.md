@@ -12,7 +12,7 @@ Prompt Deck is a Laravel package for versioned, file-based prompt management. It
 
 ## Documentation
 
-Full documentation can be found on the [Prompt Deck website](https://vu-ddaf4ff3.mintlify.app/) or the [docs](docs/) directory on GithUB:
+Full documentation can be found on the [Prompt Deck website](https://vu-ddaf4ff3.mintlify.app/) or the [docs](docs/) directory on GitHub:
 
 ## Contributing
 
