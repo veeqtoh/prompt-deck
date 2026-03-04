@@ -12,17 +12,7 @@ Prompt Deck is a Laravel package for versioned, file-based prompt management. It
 
 ## Documentation
 
-Full documentation for Prompt Deck can be found in the [docs](docs/) directory:
-
-- [Installation](docs/installation.md) — Requirements, setup, and environment configuration.
-- [Configuration](docs/configuration.md) — All available configuration options.
-- [Working with Prompts](docs/prompts.md) — Loading, rendering, versioning, and caching prompts.
-- [Creating Prompts](docs/make-prompt.md) — The `make:prompt` generator command.
-- [Artisan Commands](docs/commands.md) — All five Artisan commands.
-- [Laravel AI SDK Integration](docs/ai-sdk.md) — Using prompts with AI agents.
-- [Tracking & Performance](docs/tracking.md) — Execution logging, models, and analytics.
-- [API Reference](docs/api-reference.md) — Complete class and method reference.
-- [Testing](docs/testing.md) — Testing strategies and examples.
+Full documentation can be found on the [Prompt Deck website](https://vu-ddaf4ff3.mintlify.app/) or the [docs](docs/) directory on GithUB:
 
 ## Contributing
 
