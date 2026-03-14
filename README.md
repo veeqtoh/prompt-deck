@@ -2,7 +2,6 @@
 
 <p align="center">
 <a href="https://packagist.org/packages/veeqtoh/prompt-deck"><img src="https://img.shields.io/packagist/v/veeqtoh/prompt-deck?style=flat-square" alt="Latest Version on Packagist"></a>
-<a href="https://packagist.org/packages/veeqtoh/prompt-deck"><img src="https://img.shields.io/packagist/dt/veeqtoh/prompt-deck?style=flat-square" alt="Total Downloads"></a>
 <a href="https://packagist.org/packages/veeqtoh/prompt-deck"><img src="https://img.shields.io/packagist/php-v/veeqtoh/prompt-deck?style=flat-square" alt="PHP from Packagist"></a>
 <a href="https://github.com/veeqtoh/prompt-deck/blob/master/LICENSE"><img src="https://img.shields.io/github/license/veeqtoh/prompt-deck?style=flat-square" alt="GitHub license"></a>
 </p>
