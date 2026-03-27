@@ -11,16 +11,20 @@
         }
     ],
     "keywords": [
-        "veeqtoh",
-        "victor-ukam",
+        "ai",
+        "laravel",
+        "laravel-package",
+        "laravel-ai",
+        "laravel-ai-sdk",
+        "agentic-prompting",
+        "agentic-ai",
         "prompt-management",
         "versioned-prompts",
         "file-based-prompts",
         "variable-interpolation",
         "performance-tracking",
         "ab-testing",
-        "laravel",
-        "laravel-package"
+        "victor-ukam"
     ],
     "require": {
         "php": "^8.2",
