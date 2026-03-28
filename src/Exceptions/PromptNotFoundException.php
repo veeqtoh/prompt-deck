@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Veeqtoh\PromptDeck\Exceptions;
 
-class PromptNotFoundException extends PROMPTDECKException
+class PromptNotFoundException extends PromptDeckException
 {
     /**
      * Create a new exception instance for a missing prompt.

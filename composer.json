@@ -4,6 +4,10 @@
     "type": "library",
     "homepage": "https://github.com/veeqtoh/prompt-deck",
     "license": "MIT",
+    "support": {
+        "issues": "https://github.com/veeqtoh/prompt-deck/issues",
+        "source": "https://github.com/veeqtoh/prompt-deck"
+    },
     "authors": [
         {
             "name": "Victor Ukam",
@@ -11,16 +15,20 @@
         }
     ],
     "keywords": [
-        "veeqtoh",
-        "victor-ukam",
+        "ai",
+        "laravel",
+        "laravel-package",
+        "laravel-ai",
+        "laravel-ai-sdk",
+        "agentic-prompting",
+        "agentic-ai",
         "prompt-management",
         "versioned-prompts",
         "file-based-prompts",
         "variable-interpolation",
         "performance-tracking",
         "ab-testing",
-        "laravel",
-        "laravel-package"
+        "victor-ukam"
     ],
     "require": {
         "php": "^8.2",
@@ -32,7 +40,7 @@
     },
     "require-dev": {
         "mockery/mockery": "^1.0",
-        "orchestra/testbench": "^10.0",
+        "orchestra/testbench": "^10.0|^11.0",
         "pestphp/pest": "^4.3",
         "pestphp/pest-plugin-laravel": "^4.0",
         "laravel/pint": "^1.27"
@@ -42,7 +50,9 @@
     },
     "autoload": {
         "psr-4": {
-            "Veeqtoh\\PromptDeck\\": "src/"
+            "Veeqtoh\\PromptDeck\\": "src/",
+            "Veeqtoh\\PromptDeck\\Database\\Factories\\": "src/database/factories/",
+            "Veeqtoh\\PromptDeck\\Database\\Seeders\\": "src/database/seeders/"
         }
     },
     "autoload-dev": {

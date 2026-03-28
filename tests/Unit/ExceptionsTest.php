@@ -4,40 +4,40 @@ declare(strict_types=1);
 
 use Veeqtoh\PromptDeck\Exceptions\ConfigurationException;
 use Veeqtoh\PromptDeck\Exceptions\InvalidVersionException;
-use Veeqtoh\PromptDeck\Exceptions\PROMPTDECKException;
+use Veeqtoh\PromptDeck\Exceptions\PromptDeckException;
 use Veeqtoh\PromptDeck\Exceptions\PromptNotFoundException;
 use Veeqtoh\PromptDeck\Exceptions\PromptRenderingException;
 
 // --- Hierarchy ---
 
-test('PROMPTDECKException extends base Exception', function () {
-    expect(PROMPTDECKException::class)
+test('PromptDeckException extends base Exception', function () {
+    expect(PromptDeckException::class)
         ->toExtend(\Exception::class);
 });
 
-test('ConfigurationException extends PROMPTDECKException', function () {
+test('ConfigurationException extends PromptDeckException', function () {
     $e = ConfigurationException::invalidPath('/some/path');
 
-    expect($e)->toBeInstanceOf(PROMPTDECKException::class)
+    expect($e)->toBeInstanceOf(PromptDeckException::class)
         ->and($e)->toBeInstanceOf(\Exception::class);
 });
 
-test('InvalidVersionException extends PROMPTDECKException', function () {
+test('InvalidVersionException extends PromptDeckException', function () {
     $e = InvalidVersionException::forPrompt('test', 1);
 
-    expect($e)->toBeInstanceOf(PROMPTDECKException::class);
+    expect($e)->toBeInstanceOf(PromptDeckException::class);
 });
 
-test('PromptNotFoundException extends PROMPTDECKException', function () {
+test('PromptNotFoundException extends PromptDeckException', function () {
     $e = PromptNotFoundException::named('test');
 
-    expect($e)->toBeInstanceOf(PROMPTDECKException::class);
+    expect($e)->toBeInstanceOf(PromptDeckException::class);
 });
 
-test('PromptRenderingException extends PROMPTDECKException', function () {
+test('PromptRenderingException extends PromptDeckException', function () {
     $e = PromptRenderingException::dueToMissingVariable('name', 'greeting');
 
-    expect($e)->toBeInstanceOf(PROMPTDECKException::class);
+    expect($e)->toBeInstanceOf(PromptDeckException::class);
 });
 
 // --- Message format ---

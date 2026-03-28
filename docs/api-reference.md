@@ -7,18 +7,19 @@
 - [TrackPromptMiddleware](#trackpromptmiddleware)
 - [AfterMakeAgent Listener](#aftermakeagent-listener)
 - [Models](#models)
-    - [PromptVersion](#prompt-version)
-    - [PromptExecution](#prompt-execution)
+  - [PromptVersion](#prompt-version)
+  - [PromptExecution](#prompt-execution)
 - [Exceptions](#exceptions)
-    - [PromptDeckException](#promptdeckexception)
-    - [PromptNotFoundException](#promptnotfoundexception)
-    - [InvalidVersionException](#invalidversionexception)
-    - [ConfigurationException](#configurationexception)
-    - [PromptRenderingException](#promptrenderingexception)
+  - [PromptDeckException](#promptdeckexception)
+  - [PromptNotFoundException](#promptnotfoundexception)
+  - [InvalidVersionException](#invalidversionexception)
+  - [ConfigurationException](#configurationexception)
+  - [PromptRenderingException](#promptrenderingexception)
 
 ---
 
 <a name="prompt-manager"></a>
+
 ## PromptManager
 
 `Veeqtoh\PromptDeck\PromptManager`
@@ -36,12 +37,12 @@ public function __construct(
 )
 ```
 
-| Parameter | Type | Description |
-|---|---|---|
-| `$basePath` | `string` | Base directory where prompt files are stored. |
-| `$extension` | `string` | File extension for prompt templates (e.g. `md`). |
-| `$cache` | `Illuminate\Contracts\Cache\Repository` | Cache store instance. |
-| `$config` | `Illuminate\Contracts\Config\Repository` | Configuration repository. |
+| Parameter    | Type                                     | Description                                      |
+| ------------ | ---------------------------------------- | ------------------------------------------------ |
+| `$basePath`  | `string`                                 | Base directory where prompt files are stored.    |
+| `$extension` | `string`                                 | File extension for prompt templates (e.g. `md`). |
+| `$cache`     | `Illuminate\Contracts\Cache\Repository`  | Cache store instance.                            |
+| `$config`    | `Illuminate\Contracts\Config\Repository` | Configuration repository.                        |
 
 ### Methods
 
@@ -111,6 +112,7 @@ $manager->track('order-summary', 2, [
 ---
 
 <a name="prompt-template"></a>
+
 ## PromptTemplate
 
 `Veeqtoh\PromptDeck\PromptTemplate`
@@ -128,12 +130,12 @@ public function __construct(
 )
 ```
 
-| Parameter | Type | Description |
-|---|---|---|
-| `$name` | `string` | The prompt name. |
-| `$version` | `int` | The resolved version number. |
-| `$roles` | `array<string, string>` | Role name → raw content map. |
-| `$metadata` | `array` | Prompt metadata from `metadata.json`. |
+| Parameter   | Type                    | Description                           |
+| ----------- | ----------------------- | ------------------------------------- |
+| `$name`     | `string`                | The prompt name.                      |
+| `$version`  | `int`                   | The resolved version number.          |
+| `$roles`    | `array<string, string>` | Role name → raw content map.          |
+| `$metadata` | `array`                 | Prompt metadata from `metadata.json`. |
 
 ### Methods
 
@@ -175,10 +177,10 @@ $prompt->roles(); // ['system', 'user', 'assistant']
 
 Build a messages array for AI API consumption. Returns an array of `['role' => '...', 'content' => '...']` entries.
 
-| Parameter | Type | Description |
-|---|---|---|
-| `$variables` | `array` | Variables to interpolate into every role. |
-| `$only` | `array\|null` | Limit to these roles (preserves order). `null` = all roles. |
+| Parameter    | Type          | Description                                                 |
+| ------------ | ------------- | ----------------------------------------------------------- |
+| `$variables` | `array`       | Variables to interpolate into every role.                   |
+| `$only`      | `array\|null` | Limit to these roles (preserves order). `null` = all roles. |
 
 ```php
 $messages = $prompt->toMessages(['tone' => 'concise'], ['system', 'user']);
@@ -230,6 +232,7 @@ $prompt->custom_role();                    // renders 'custom_role' role
 ---
 
 <a name="promptdeck-facade"></a>
+
 ## PromptDeck Facade
 
 `Veeqtoh\PromptDeck\Facades\PromptDeck`
@@ -238,17 +241,18 @@ Static proxy to the `PromptManager` singleton.
 
 ### Available Methods
 
-| Method | Returns | Description |
-|---|---|---|
-| `PromptDeck::get(string $name, ?int $version = null)` | `PromptTemplate` | Load a prompt by name and optional version. |
-| `PromptDeck::active(string $name)` | `PromptTemplate` | Load the active version of a prompt. |
-| `PromptDeck::versions(string $name)` | `array` | List all versions for a prompt. |
-| `PromptDeck::activate(string $name, int $version)` | `bool` | Activate a specific version. |
-| `PromptDeck::track(string $name, int $version, array $data)` | `void` | Record a prompt execution. |
+| Method                                                       | Returns          | Description                                 |
+| ------------------------------------------------------------ | ---------------- | ------------------------------------------- |
+| `PromptDeck::get(string $name, ?int $version = null)`        | `PromptTemplate` | Load a prompt by name and optional version. |
+| `PromptDeck::active(string $name)`                           | `PromptTemplate` | Load the active version of a prompt.        |
+| `PromptDeck::versions(string $name)`                         | `array`          | List all versions for a prompt.             |
+| `PromptDeck::activate(string $name, int $version)`           | `bool`           | Activate a specific version.                |
+| `PromptDeck::track(string $name, int $version, array $data)` | `void`           | Record a prompt execution.                  |
 
 ---
 
 <a name="hasprompttemplate-trait"></a>
+
 ## HasPromptTemplate Trait
 
 `Veeqtoh\PromptDeck\Concerns\HasPromptTemplate`
@@ -285,9 +289,9 @@ Get the system instructions from the prompt template. Loads the `system` role an
 
 Get prompt roles as messages. By default returns all roles except `system`. Returns `Message[]` when the AI SDK is installed, or raw `['role' => '...', 'content' => '...']` arrays otherwise.
 
-| Parameter | Type | Description |
-|---|---|---|
-| `$only` | `array\|null` | Limit to specific roles. `null` = all non-system roles. |
+| Parameter | Type          | Description                                             |
+| --------- | ------------- | ------------------------------------------------------- |
+| `$only`   | `array\|null` | Limit to specific roles. `null` = all non-system roles. |
 
 #### `forgetPromptTemplate(): static`
 
@@ -296,6 +300,7 @@ Clear the cached `PromptTemplate`, forcing a fresh load on next access. Returns 
 ---
 
 <a name="trackpromptmiddleware"></a>
+
 ## TrackPromptMiddleware
 
 `Veeqtoh\PromptDeck\Ai\TrackPromptMiddleware`
@@ -313,6 +318,7 @@ Only tracks agents that use the `HasPromptTemplate` trait (i.e. agents with a `p
 ---
 
 <a name="aftermakeagent-listener"></a>
+
 ## AfterMakeAgent Listener
 
 `Veeqtoh\PromptDeck\Listeners\AfterMakeAgent`
@@ -328,95 +334,104 @@ Handle the `CommandFinished` event. Only acts on successful `make:agent` command
 ---
 
 <a name="models"></a>
+
 ## Models
 
 <a name="prompt-version"></a>
+
 ### PromptVersion
 
 `Veeqtoh\PromptDeck\Models\PromptVersion`
 
-| Attribute | Type | Cast | Description |
-|---|---|---|---|
-| `name` | `string` | — | Prompt name. |
-| `version` | `int` | `integer` | Version number. |
-| `system_prompt` | `string\|null` | — | System prompt content. |
-| `user_prompt` | `string` | — | User prompt content. |
-| `metadata` | `array\|null` | `array` | Version metadata. |
-| `is_active` | `bool` | `boolean` | Whether this is the active version. |
+| Attribute       | Type           | Cast      | Description                         |
+| --------------- | -------------- | --------- | ----------------------------------- |
+| `name`          | `string`       | —         | Prompt name.                        |
+| `version`       | `int`          | `integer` | Version number.                     |
+| `system_prompt` | `string\|null` | —         | System prompt content.              |
+| `user_prompt`   | `string`       | —         | User prompt content.                |
+| `metadata`      | `array\|null`  | `array`   | Version metadata.                   |
+| `is_active`     | `bool`         | `boolean` | Whether this is the active version. |
 
 <a name="prompt-execution"></a>
+
 ### PromptExecution
 
 `Veeqtoh\PromptDeck\Models\PromptExecution`
 
-| Attribute | Type | Cast | Description |
-|---|---|---|---|
-| `prompt_name` | `string` | — | Prompt name. |
-| `prompt_version` | `int` | `integer` | Version number. |
-| `input` | `array\|null` | `array` | Input data (JSON). |
-| `output` | `string\|null` | — | Response text. |
-| `tokens` | `int\|null` | `integer` | Total tokens. |
-| `latency_ms` | `int\|null` | `integer` | Latency in milliseconds. |
-| `cost` | `string\|null` | `decimal:6` | Cost (6 decimal places). |
-| `model` | `string\|null` | — | AI model used. |
-| `provider` | `string\|null` | — | AI provider. |
-| `feedback` | `array\|null` | `array` | Feedback data (JSON). |
+| Attribute        | Type           | Cast        | Description              |
+| ---------------- | -------------- | ----------- | ------------------------ |
+| `prompt_name`    | `string`       | —           | Prompt name.             |
+| `prompt_version` | `int`          | `integer`   | Version number.          |
+| `input`          | `array\|null`  | `array`     | Input data (JSON).       |
+| `output`         | `string\|null` | —           | Response text.           |
+| `tokens`         | `int\|null`    | `integer`   | Total tokens.            |
+| `latency_ms`     | `int\|null`    | `integer`   | Latency in milliseconds. |
+| `cost`           | `string\|null` | `decimal:6` | Cost (6 decimal places). |
+| `model`          | `string\|null` | —           | AI model used.           |
+| `provider`       | `string\|null` | —           | AI provider.             |
+| `feedback`       | `array\|null`  | `array`     | Feedback data (JSON).    |
 
 ---
 
 <a name="exceptions"></a>
+
 ## Exceptions
 
 All Prompt Deck exceptions extend the base `PromptDeckException` class.
 
 <a name="promptdeckexception"></a>
+
 ### PromptDeckException
 
-`Veeqtoh\PromptDeck\Exceptions\PROMPTDECKException`
+`Veeqtoh\PromptDeck\Exceptions\PromptDeckException`
 
 Abstract base exception for all Prompt Deck errors. Extends PHP's `Exception` class.
 
 <a name="promptnotfoundexception"></a>
+
 ### PromptNotFoundException
 
 `Veeqtoh\PromptDeck\Exceptions\PromptNotFoundException`
 
 Thrown when a prompt directory does not exist.
 
-| Factory Method | Description |
-|---|---|
+| Factory Method              | Description                                                    |
+| --------------------------- | -------------------------------------------------------------- |
 | `named(string $name): self` | Creates exception with message: `"Prompt [{name}] not found."` |
 
 <a name="invalidversionexception"></a>
+
 ### InvalidVersionException
 
 `Veeqtoh\PromptDeck\Exceptions\InvalidVersionException`
 
 Thrown when a requested version does not exist or no versions are found.
 
-| Factory Method | Description |
-|---|---|
+| Factory Method                                | Description                                                                               |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `forPrompt(string $name, int $version): self` | Creates exception with message: `"Version {version} for prompt [{name}] does not exist."` |
-| `noVersions(string $name): self` | Creates exception with message: `"No versions found for prompt [{name}]."` |
+| `noVersions(string $name): self`              | Creates exception with message: `"No versions found for prompt [{name}]."`                |
 
 <a name="configurationexception"></a>
+
 ### ConfigurationException
 
 `Veeqtoh\PromptDeck\Exceptions\ConfigurationException`
 
 Thrown when Prompt Deck configuration is invalid.
 
-| Factory Method | Description |
-|---|---|
+| Factory Method                    | Description                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `invalidPath(string $path): self` | Creates exception with message: `"Prompts path [{path}] is not a directory or is not writable."` |
 
 <a name="promptrenderingexception"></a>
+
 ### PromptRenderingException
 
 `Veeqtoh\PromptDeck\Exceptions\PromptRenderingException`
 
 Thrown when prompt rendering fails.
 
-| Factory Method | Description |
-|---|---|
+| Factory Method                                                     | Description                                                                                                      |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
 | `dueToMissingVariable(string $variable, string $promptName): self` | Creates exception with message: `"Cannot render prompt [{promptName}]: missing required variable '{variable}'."` |

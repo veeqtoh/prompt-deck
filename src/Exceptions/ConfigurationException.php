@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Veeqtoh\PromptDeck\Exceptions;
 
-class ConfigurationException extends PROMPTDECKException
+class ConfigurationException extends PromptDeckException
 {
     /**
      * Create a new exception for an invalid prompts path configuration.

@@ -4,6 +4,9 @@
 <a href="https://packagist.org/packages/veeqtoh/prompt-deck"><img src="https://img.shields.io/packagist/v/veeqtoh/prompt-deck?style=flat-square" alt="Latest Version on Packagist"></a>
 <a href="https://packagist.org/packages/veeqtoh/prompt-deck"><img src="https://img.shields.io/packagist/php-v/veeqtoh/prompt-deck?style=flat-square" alt="PHP from Packagist"></a>
 <a href="https://github.com/veeqtoh/prompt-deck/blob/master/LICENSE"><img src="https://img.shields.io/github/license/veeqtoh/prompt-deck?style=flat-square" alt="GitHub license"></a>
+<a href="https://laravel-news.com/prompt-deck-manage-ai-prompts-as-versioned-files-in-laravel/">
+    <img src="https://img.shields.io/badge/Featured in Laravel News-%FF0000.svg?&style=flat-square&logo=laravel&logoColor=white"  alt="https://laravel-news.com/prompt-deck-manage-ai-prompts-as-versioned-files-in-laravel"/>
+  </a>
 </p>
 
 ## Introduction
@@ -102,7 +105,7 @@ class OrderAgent extends Agent
 {
     use HasPromptTemplate;
 
-    // instructions() and promptMessages() are provided automatically
+    // instructions() and promptMessages() are provided automatically.
 }
 ```
 
@@ -134,4 +137,4 @@ Prompt Deck is open-sourced software licensed under the [MIT license](LICENSE).
 
 ## Support
 
-This library is created by [Victor Ukam](https://victorukam.com) with contributions from the [Open Source Community](https://github.com/veeqtoh/prompt-deck/graphs/contributors). If you've found this package useful, please consider [sponsoring this project](https://github.com/sponsors/veeqtoh). It will go along way to help with maintenance.
+This library is created by [Victor Ukam](https://victorukam.com) with contributions from the [Open Source Community](https://github.com/veeqtoh/prompt-deck/graphs/contributors). If you've found this package useful, please consider [sponsoring this project](https://github.com/sponsors/veeqtoh). It will go a long way to help with maintenance.

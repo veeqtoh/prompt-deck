@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Veeqtoh\PromptDeck\Exceptions;
 
-class InvalidVersionException extends PROMPTDECKException
+class InvalidVersionException extends PromptDeckException
 {
     /**
      * * Create an exception for a non-existent version.

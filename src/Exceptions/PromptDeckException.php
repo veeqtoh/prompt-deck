@@ -6,7 +6,7 @@ namespace Veeqtoh\PromptDeck\Exceptions;
 
 use Exception;
 
-abstract class PROMPTDECKException extends Exception
+abstract class PromptDeckException extends Exception
 {
     //
 }
