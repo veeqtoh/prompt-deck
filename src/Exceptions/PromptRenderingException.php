@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Veeqtoh\PromptDeck\Exceptions;
 
-class PromptRenderingException extends PROMPTDECKException
+class PromptRenderingException extends PromptDeckException
 {
     /**
      * Create a new exception for a missing variable during prompt rendering.

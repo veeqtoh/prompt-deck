@@ -15,7 +15,7 @@ use Veeqtoh\PromptDeck\Models\PromptVersion;
 
 function runMigrations(): void
 {
-    $migrationsPath = realpath(__DIR__.'/../../src/database/migrations');
+    $migrationsPath = realpath(__DIR__.'/../../src/Database/migrations');
 
     test()->artisan('migrate', [
         '--path'     => $migrationsPath,
@@ -26,7 +26,7 @@ function runMigrations(): void
 
 function rollbackMigrations(): void
 {
-    $migrationsPath = realpath(__DIR__.'/../../src/database/migrations');
+    $migrationsPath = realpath(__DIR__.'/../../src/Database/migrations');
 
     test()->artisan('migrate:rollback', [
         '--path'     => $migrationsPath,

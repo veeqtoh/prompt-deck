@@ -6,6 +6,7 @@ namespace Veeqtoh\PromptDeck\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Veeqtoh\PromptDeck\Database\Factories\PromptExecutionFactory;
 
 class PromptExecution extends Model
 {
@@ -38,8 +39,8 @@ class PromptExecution extends Model
     /**
      * Create a new factory instance for the model.
      */
-    protected static function newFactory(): \Veeqtoh\PromptDeck\Database\Factories\PromptExecutionFactory
+    protected static function newFactory(): PromptExecutionFactory
     {
-        return \Veeqtoh\PromptDeck\Database\Factories\PromptExecutionFactory::new();
+        return PromptExecutionFactory::new();
     }
 }
