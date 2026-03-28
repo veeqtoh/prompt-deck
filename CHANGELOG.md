@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - This CHANGELOG file to hopefully serve as an evolving CHANGELOG.
 - GitHub Actions workflow for automated testing.
+- `.gitattributes` file to manage text file handling and export-ignore rules.
 
 ### Fixed
 
